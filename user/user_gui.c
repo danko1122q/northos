@@ -13,15 +13,13 @@
 int min(int x, int y) { return x < y ? x : y; }
 int max(int x, int y) { return x > y ? x : y; }
 
-void drawPoint(RGB *color, RGB origin)
-{
+void drawPoint(RGB *color, RGB origin) {
 	color->R = origin.R;
 	color->G = origin.G;
 	color->B = origin.B;
 }
 
-void drawPointAlpha(RGB *color, RGBA origin)
-{
+void drawPointAlpha(RGB *color, RGBA origin) {
 	float alpha;
 	if (origin.A == 255) {
 		color->R = origin.R;
@@ -39,8 +37,7 @@ void drawPointAlpha(RGB *color, RGBA origin)
 }
 
 void fillRect(RGB *buf, int x, int y, int width, int height, int max_x,
-	      int max_y, RGBA fill)
-{
+	      int max_y, RGBA fill) {
 	int i, j;
 	RGB *t;
 	for (i = 0; i < height; i++) {
@@ -59,8 +56,7 @@ void fillRect(RGB *buf, int x, int y, int width, int height, int max_x,
 	}
 }
 
-int drawCharacter(window *win, int x, int y, char ch, RGBA color)
-{
+int drawCharacter(window *win, int x, int y, char ch, RGBA color) {
 	int i, j;
 	RGB *t;
 	int ord = ch - 0x20;
@@ -92,8 +88,7 @@ int drawCharacter(window *win, int x, int y, char ch, RGBA color)
 }
 
 void drawString(window *win, char *str, RGBA color, int x, int y, int width,
-		int height)
-{
+		int height) {
 	int offset_x = 0;
 	int offset_y = 0;
 
@@ -121,8 +116,7 @@ void drawString(window *win, char *str, RGBA color, int x, int y, int width,
 	}
 }
 
-void drawImage(window *win, RGBA *img, int x, int y, int width, int height)
-{
+void drawImage(window *win, RGBA *img, int x, int y, int width, int height) {
 	int i, j;
 	RGB *t;
 	RGBA *o;
@@ -148,8 +142,7 @@ void drawImage(window *win, RGBA *img, int x, int y, int width, int height)
 	}
 }
 
-void draw24Image(window *win, RGB *img, int x, int y, int width, int height)
-{
+void draw24Image(window *win, RGB *img, int x, int y, int width, int height) {
 
 	int i;
 	RGB *t;
@@ -168,8 +161,7 @@ void draw24Image(window *win, RGB *img, int x, int y, int width, int height)
 	}
 }
 
-void drawRect(window *win, RGB color, int x, int y, int width, int height)
-{
+void drawRect(window *win, RGB color, int x, int y, int width, int height) {
 	int screen_width = win->width;
 	int screen_height = win->height;
 
@@ -215,8 +207,8 @@ void drawRect(window *win, RGB color, int x, int y, int width, int height)
 	}
 }
 
-void drawFillRect(window *win, RGBA color, int x, int y, int width, int height)
-{
+void drawFillRect(window *win, RGBA color, int x, int y, int width,
+		  int height) {
 
 	int screen_width = win->width;
 	int screen_height = win->height;
@@ -254,8 +246,8 @@ void drawFillRect(window *win, RGBA color, int x, int y, int width, int height)
 	}
 }
 
-void draw24FillRect(window *win, RGB color, int x, int y, int width, int height)
-{
+void draw24FillRect(window *win, RGB color, int x, int y, int width,
+		    int height) {
 
 	if (x >= win->width || x + width < 0 || y >= win->height ||
 	    y + height < 0 || x < 0 || y < 0 || width < 0 || height < 0) {
@@ -284,8 +276,7 @@ void draw24FillRect(window *win, RGB color, int x, int y, int width, int height)
 }
 
 void drawIcon(window *win, int icon, RGBA color, int x, int y, int width,
-	      int height)
-{
+	      int height) {
 
 	int i, j;
 	RGB *t;

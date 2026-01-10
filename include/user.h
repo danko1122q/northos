@@ -1,6 +1,10 @@
+#ifndef USER_H
+#define USER_H
+
+#include "types.h" // TAMBAHKAN INI: Agar uint, ushort, dll dikenali
+
 struct stat;
 struct rtcdate;
-
 struct RGBA;
 struct RGB;
 struct message;
@@ -52,7 +56,7 @@ char *strchr(const char *, char c);
 int strcmp(const char *, const char *);
 void printf(int, const char *, ...);
 char *gets(char *, int max);
-uint strlen(const char *);
+uint strlen(const char *); // Sekarang uint sudah aman
 void *memset(void *, int, uint);
 void *malloc(uint);
 void free(void *);
@@ -106,3 +110,5 @@ void inputFieldKeyHandler(struct Widget *w, struct message *msg);
 int getScrollableTotalHeight(struct window *win);
 int addScrollBarWidget(struct window *window, struct RGBA color,
 		       Handler handler);
+
+#endif // USER_H

@@ -25,8 +25,7 @@ char *GUI_programs[] = {"shell", "editor", "explorer", "demo"};
 
 void gui_ls(char *path);
 
-char *getFileExtension(char *filename)
-{
+char *getFileExtension(char *filename) {
 	static char buf[DIRSIZ + 1];
 	char *p;
 
@@ -44,8 +43,7 @@ char *getFileExtension(char *filename)
 	return buf;
 }
 
-int isOpenable(char *filename)
-{
+int isOpenable(char *filename) {
 	int isOpenable = 0;
 	for (int i = 0; i < 4; i++) {
 		if (strcmp(filename, GUI_programs[i]) == 0)
@@ -54,8 +52,7 @@ int isOpenable(char *filename)
 	return isOpenable;
 }
 
-char *getparentpath(char *path)
-{
+char *getparentpath(char *path) {
 	static char buf[DIRSIZ + 1];
 	char *p;
 
@@ -69,8 +66,7 @@ char *getparentpath(char *path)
 	return buf;
 }
 
-void mkdirHandler(Widget *widget, message *msg)
-{
+void mkdirHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_DBCLICK) {
 		memset(newDir, 0, MAX_SHORT_STRLEN);
 		strcpy(newDir, current_path);
@@ -88,16 +84,14 @@ void mkdirHandler(Widget *widget, message *msg)
 	}
 }
 
-void backHandler(Widget *widget, message *msg)
-{
+void backHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_DBCLICK) {
 		strcpy(current_path, getparentpath(current_path));
 		gui_ls(current_path);
 	}
 }
 
-void cdHandler(Widget *widget, message *msg)
-{
+void cdHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_DBCLICK) {
 		int current_path_length = strlen(current_path);
 		current_path[current_path_length] = '/';
@@ -107,8 +101,7 @@ void cdHandler(Widget *widget, message *msg)
 	}
 }
 
-void buttonHandler(Widget *widget, message *msg)
-{
+void buttonHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_DBCLICK) {
 		if (fork() == 0) {
 			// printf(1, "fork new process\n");
@@ -130,8 +123,7 @@ void buttonHandler(Widget *widget, message *msg)
 	}
 }
 
-char *fmtname(char *path)
-{
+char *fmtname(char *path) {
 	static char buf[DIRSIZ + 1];
 	char *p;
 
@@ -149,8 +141,7 @@ char *fmtname(char *path)
 	return buf;
 }
 
-void gui_ls(char *path)
-{
+void gui_ls(char *path) {
 	strcpy(desktop.widgets[current_path_widget].context.text->text, path);
 	printf(1, desktop.widgets[current_path_widget].context.text->text);
 
@@ -245,8 +236,7 @@ void gui_ls(char *path)
 	close(fd);
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
 	struct RGBA bgColor;
 

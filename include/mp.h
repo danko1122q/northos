@@ -1,3 +1,8 @@
+#ifndef MP_H
+#define MP_H
+
+#include "types.h" // WAJIB agar uchar, ushort, dan uint dikenali
+
 // See MultiProcessor Specification Version 1.[14]
 
 struct mp {		    // floating pointer
@@ -54,3 +59,4 @@ struct mpioapic {      // I/O APIC table entry
 
 // PAGEBREAK!
 // Blank page.
+#endif // MP_H

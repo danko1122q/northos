@@ -2,8 +2,7 @@
 #include "defs.h"
 #include "types.h"
 
-int handleMessage(message *msg)
-{
+int handleMessage(message *msg) {
 	/*
 	if (msg->msg_type == M_KEY_UP)
 	{

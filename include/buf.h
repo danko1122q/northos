@@ -1,3 +1,11 @@
+#ifndef BUF_H
+#define BUF_H
+
+/* Dependensi wajib untuk struct buf */
+#include "param.h" /* Menyediakan BSIZE */
+#include "sleeplock.h"
+#include "types.h"
+
 struct buf {
 	int flags;
 	uint dev;
@@ -7,7 +15,10 @@ struct buf {
 	struct buf *prev; // LRU cache list
 	struct buf *next;
 	struct buf *qnext; // disk queue
-	uchar data[BSIZE];
+	uchar data[BSIZE]; // Menggunakan BSIZE dari param.h
 };
-#define B_VALID 0x2 // buffer has been read from disk
-#define B_DIRTY 0x4 // buffer needs to be written to disk
+
+#define B_VALID 0x2
+#define B_DIRTY 0x4
+
+#endif

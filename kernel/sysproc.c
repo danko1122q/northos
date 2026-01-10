@@ -9,16 +9,14 @@
 
 int sys_fork(void) { return fork(); }
 
-int sys_exit(void)
-{
+int sys_exit(void) {
 	exit();
 	return 0; // not reached
 }
 
 int sys_wait(void) { return wait(); }
 
-int sys_kill(void)
-{
+int sys_kill(void) {
 	int pid;
 
 	if (argint(0, &pid) < 0)
@@ -28,8 +26,7 @@ int sys_kill(void)
 
 int sys_getpid(void) { return myproc()->pid; }
 
-int sys_sbrk(void)
-{
+int sys_sbrk(void) {
 	int addr;
 	int n;
 
@@ -41,8 +38,7 @@ int sys_sbrk(void)
 	return addr;
 }
 
-int sys_sleep(void)
-{
+int sys_sleep(void) {
 	int n;
 	uint ticks0;
 
@@ -63,8 +59,7 @@ int sys_sleep(void)
 
 // return how many clock tick interrupts have occurred
 // since start.
-int sys_uptime(void)
-{
+int sys_uptime(void) {
 	uint xticks;
 
 	acquire(&tickslock);
@@ -74,8 +69,7 @@ int sys_uptime(void)
 }
 
 // System call untuk mematikan komputer (QEMU)
-int sys_halt(void)
-{
+int sys_halt(void) {
 	// Instruksi khusus untuk mematikan QEMU
 	// 0x604 adalah port acpi, 0x2000 adalah perintah poweroff
 	outw(0x604, 0x2000);
@@ -87,8 +81,7 @@ int sys_halt(void)
 }
 
 // System call untuk restart komputer
-int sys_reboot(void)
-{
+int sys_reboot(void) {
 	// Mengirim sinyal reset ke keyboard controller (standar x86 reboot)
 	uchar good = 0x02;
 	while (good & 0x02)

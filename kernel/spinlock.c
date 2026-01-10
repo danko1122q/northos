@@ -9,8 +9,7 @@
 #include "types.h"
 #include "x86.h"
 
-void initlock(struct spinlock *lk, char *name)
-{
+void initlock(struct spinlock *lk, char *name) {
 	lk->name = name;
 	lk->locked = 0;
 	lk->cpu = 0;
@@ -20,8 +19,7 @@ void initlock(struct spinlock *lk, char *name)
 // Loops (spins) until the lock is acquired.
 // Holding a lock for a long time may cause
 // other CPUs to waste time spinning to acquire it.
-void acquire(struct spinlock *lk)
-{
+void acquire(struct spinlock *lk) {
 	pushcli(); // disable interrupts to avoid deadlock.
 	if (holding(lk))
 		panic("acquire");
@@ -41,8 +39,7 @@ void acquire(struct spinlock *lk)
 }
 
 // Release the lock.
-void release(struct spinlock *lk)
-{
+void release(struct spinlock *lk) {
 	if (!holding(lk))
 		panic("release");
 
@@ -65,8 +62,7 @@ void release(struct spinlock *lk)
 }
 
 // Record the current call stack in pcs[] by following the %ebp chain.
-void getcallerpcs(void *v, uint pcs[])
-{
+void getcallerpcs(void *v, uint pcs[]) {
 	uint *ebp;
 	int i;
 
@@ -83,8 +79,7 @@ void getcallerpcs(void *v, uint pcs[])
 }
 
 // Check whether this cpu is holding the lock.
-int holding(struct spinlock *lock)
-{
+int holding(struct spinlock *lock) {
 	int r;
 	pushcli();
 	r = lock->locked && lock->cpu == mycpu();
@@ -96,8 +91,7 @@ int holding(struct spinlock *lock)
 // it takes two popcli to undo two pushcli.  Also, if interrupts
 // are off, then pushcli, popcli leaves them off.
 
-void pushcli(void)
-{
+void pushcli(void) {
 	int eflags;
 
 	eflags = readeflags();
@@ -107,8 +101,7 @@ void pushcli(void)
 	mycpu()->ncli += 1;
 }
 
-void popcli(void)
-{
+void popcli(void) {
 	if (readeflags() & FL_IF)
 		panic("popcli - interruptible");
 	if (--mycpu()->ncli < 0)

@@ -16,8 +16,7 @@ static int count;
 static int recovery;
 static int lastbtn, lastdowntick, lastclicktick;
 
-void mouse_wait(uchar type)
-{
+void mouse_wait(uchar type) {
 	uint time_out = 100000;
 	if (type == 0) {
 		while (--time_out) {
@@ -32,22 +31,19 @@ void mouse_wait(uchar type)
 	}
 }
 
-void mouse_write(uchar word)
-{
+void mouse_write(uchar word) {
 	mouse_wait(1);
 	outb(0x64, 0xd4);
 	mouse_wait(1);
 	outb(0x60, word);
 }
 
-uint mouse_read()
-{
+uint mouse_read() {
 	mouse_wait(0);
 	return inb(0x60);
 }
 
-void mouseinit(void)
-{
+void mouseinit(void) {
 	uchar statustemp;
 
 	mouse_wait(1);
@@ -81,16 +77,14 @@ void mouseinit(void)
 	lastclicktick = lastdowntick = -1000;
 }
 
-void genMouseUpMessage(int btns)
-{
+void genMouseUpMessage(int btns) {
 	message msg;
 	msg.msg_type = M_MOUSE_UP;
 	msg.params[0] = btns;
 	handleMessage(&msg);
 }
 
-void genMouseMessage()
-{
+void genMouseMessage() {
 	if (packet.x_overflow || packet.y_overflow)
 		return;
 	int x = packet.x_sgn ? (0xffffff00 | (packet.x_mov & 0xff))
@@ -136,8 +130,7 @@ void genMouseMessage()
 	handleMessage(&msg);
 }
 
-void mouseintr(uint tick)
-{
+void mouseintr(uint tick) {
 	acquire(&mouselock);
 	int state;
 	while (((state = inb(0x64)) & 1) == 1) {

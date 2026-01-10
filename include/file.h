@@ -1,3 +1,10 @@
+#ifndef FILE_H
+#define FILE_H
+
+#include "fs.h"	       // Diperlukan agar NDIRECT didefinisikan
+#include "sleeplock.h" // Diperlukan agar struct sleeplock diketahui ukurannya
+#include "types.h"
+
 struct file {
 	enum { FD_NONE, FD_PIPE, FD_INODE } type;
 	int ref; // reference count
@@ -34,3 +41,5 @@ struct devsw {
 extern struct devsw devsw[];
 
 #define CONSOLE 1
+
+#endif // FILE_H

@@ -26,8 +26,7 @@ int gameOver = 1;
 
 struct RGBA buttonColor, textColor, birdColor, backgroundColor, columnColor;
 
-int collisionDetection(win_rect *rec1, win_rect *rec2)
-{
+int collisionDetection(win_rect *rec1, win_rect *rec2) {
 	if (rec1->xmin >= rec2->xmax || rec2->xmin >= rec1->xmax) {
 		return 0;
 	}
@@ -37,8 +36,7 @@ int collisionDetection(win_rect *rec1, win_rect *rec2)
 	return 1;
 }
 
-void initGame()
-{
+void initGame() {
 	birdVelocity = 0;
 	win_rect *bird_position = &programWindow.widgets[birdId].position;
 	bird_position->xmin = programWindow.width / 2 - birdWidth / 2;
@@ -65,8 +63,7 @@ void initGame()
 	}
 }
 
-void buttonHandler(Widget *w, message *msg)
-{
+void buttonHandler(Widget *w, message *msg) {
 	// int width = w->position.xmax - w->position.xmin;
 	int height = w->position.ymax - w->position.ymin;
 
@@ -79,8 +76,7 @@ void buttonHandler(Widget *w, message *msg)
 	}
 }
 
-void jumpHandler(Widget *w, message *msg)
-{
+void jumpHandler(Widget *w, message *msg) {
 	// int width = w->position.xmax - w->position.xmin;
 	// int height = w->position.ymax - w->position.ymin;
 
@@ -96,8 +92,7 @@ void jumpHandler(Widget *w, message *msg)
 	}
 }
 
-int main()
-{
+int main() {
 
 	programWindow.width = 540;
 	programWindow.height = 400;

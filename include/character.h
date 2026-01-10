@@ -5,6 +5,9 @@
 #define CHARACTER_HEIGHT 18
 #define CHARACTER_NUMBER 96
 
+extern unsigned char character[CHARACTER_NUMBER - 1][CHARACTER_HEIGHT]
+			      [CHARACTER_WIDTH];
+
 unsigned char character[CHARACTER_NUMBER - 1][CHARACTER_HEIGHT]
 		       [CHARACTER_WIDTH] = {{//
 					     {0, 0, 0, 0, 0, 0, 0, 0, 0},

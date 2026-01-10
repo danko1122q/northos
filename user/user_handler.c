@@ -5,8 +5,7 @@
 void emptyHandler(Widget *w, message *msg) { return; }
 
 int getInputOffsetFromMousePosition(char *str, int width, int mouse_x,
-				    int mouse_y)
-{
+				    int mouse_y) {
 
 	// printf(1, "mouse int at %d, %d\n", mouse_x, mouse_y);
 	int charPerLine = width / CHARACTER_WIDTH;
@@ -43,8 +42,7 @@ int getInputOffsetFromMousePosition(char *str, int width, int mouse_x,
 	return current_pos;
 }
 
-int getMouseXFromOffset(char *str, int width, int offset)
-{
+int getMouseXFromOffset(char *str, int width, int offset) {
 
 	int charPerLine = width / CHARACTER_WIDTH;
 	int offset_x = 0;
@@ -66,8 +64,7 @@ int getMouseXFromOffset(char *str, int width, int offset)
 	return offset_x;
 }
 
-int getMouseYFromOffset(char *str, int width, int offset)
-{
+int getMouseYFromOffset(char *str, int width, int offset) {
 
 	int charPerLine = width / CHARACTER_WIDTH;
 	int offset_x = 0;
@@ -89,8 +86,7 @@ int getMouseYFromOffset(char *str, int width, int offset)
 	return offset_y;
 }
 
-int getScrollableTotalHeight(window *win)
-{
+int getScrollableTotalHeight(window *win) {
 
 	int totalHeight = 0;
 	int p;
@@ -105,8 +101,7 @@ int getScrollableTotalHeight(window *win)
 }
 
 // scrollbar needs more implementation
-int addScrollBarWidget(window *window, RGBA color, Handler scrollBarHandler)
-{
+int addScrollBarWidget(window *window, RGBA color, Handler scrollBarHandler) {
 	// int totalHeight = getScrollableTotalHeight(window);
 	// int scrollableHeight = ((float)window->height / totalHeight) *
 	// window->height;
@@ -116,8 +111,7 @@ int addScrollBarWidget(window *window, RGBA color, Handler scrollBarHandler)
 }
 
 // change text cursor from mouse click
-void inputMouseLeftClickHandler(Widget *w, message *msg)
-{
+void inputMouseLeftClickHandler(Widget *w, message *msg) {
 	if (msg->msg_type != M_MOUSE_LEFT_CLICK)
 		return;
 
@@ -133,8 +127,7 @@ void inputMouseLeftClickHandler(Widget *w, message *msg)
 	w->context.inputfield->current_pos = new_pos;
 }
 
-void inputFieldKeyHandler(Widget *w, message *msg)
-{
+void inputFieldKeyHandler(Widget *w, message *msg) {
 	if (msg->msg_type != M_KEY_DOWN)
 		return;
 	int width = w->position.xmax - w->position.xmin;

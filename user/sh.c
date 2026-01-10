@@ -54,8 +54,7 @@ void panic(char *);
 struct cmd *parsecmd(char *);
 
 // Execute cmd.  Never returns.
-void runcmd(struct cmd *cmd)
-{
+void runcmd(struct cmd *cmd) {
 	int p[2];
 	struct backcmd *bcmd;
 	struct execcmd *ecmd;
@@ -129,8 +128,7 @@ void runcmd(struct cmd *cmd)
 	exit();
 }
 
-int getcmd(int rfd, char *buf, int nbuf)
-{
+int getcmd(int rfd, char *buf, int nbuf) {
 
 	// printf(2, "$ ");
 	memset(buf, 0, nbuf);
@@ -144,8 +142,7 @@ int getcmd(int rfd, char *buf, int nbuf)
 
 int rfd, wfd;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	static char buf[100];
 	int fd;
 
@@ -186,14 +183,12 @@ int main(int argc, char *argv[])
 	exit();
 }
 
-void panic(char *s)
-{
+void panic(char *s) {
 	printf(2, "%s\n", s);
 	exit();
 }
 
-int fork1(void)
-{
+int fork1(void) {
 	int pid;
 
 	pid = fork();
@@ -205,8 +200,7 @@ int fork1(void)
 // PAGEBREAK!
 // Constructors
 
-struct cmd *execcmd(void)
-{
+struct cmd *execcmd(void) {
 	struct execcmd *cmd;
 
 	cmd = malloc(sizeof(*cmd));
@@ -216,8 +210,7 @@ struct cmd *execcmd(void)
 }
 
 struct cmd *redircmd(struct cmd *subcmd, char *file, char *efile, int mode,
-		     int fd)
-{
+		     int fd) {
 	struct redircmd *cmd;
 
 	cmd = malloc(sizeof(*cmd));
@@ -231,8 +224,7 @@ struct cmd *redircmd(struct cmd *subcmd, char *file, char *efile, int mode,
 	return (struct cmd *)cmd;
 }
 
-struct cmd *pipecmd(struct cmd *left, struct cmd *right)
-{
+struct cmd *pipecmd(struct cmd *left, struct cmd *right) {
 	struct pipecmd *cmd;
 
 	cmd = malloc(sizeof(*cmd));
@@ -243,8 +235,7 @@ struct cmd *pipecmd(struct cmd *left, struct cmd *right)
 	return (struct cmd *)cmd;
 }
 
-struct cmd *listcmd(struct cmd *left, struct cmd *right)
-{
+struct cmd *listcmd(struct cmd *left, struct cmd *right) {
 	struct listcmd *cmd;
 
 	cmd = malloc(sizeof(*cmd));
@@ -255,8 +246,7 @@ struct cmd *listcmd(struct cmd *left, struct cmd *right)
 	return (struct cmd *)cmd;
 }
 
-struct cmd *backcmd(struct cmd *subcmd)
-{
+struct cmd *backcmd(struct cmd *subcmd) {
 	struct backcmd *cmd;
 
 	cmd = malloc(sizeof(*cmd));
@@ -271,8 +261,7 @@ struct cmd *backcmd(struct cmd *subcmd)
 char whitespace[] = " \t\r\n\v";
 char symbols[] = "<|>&;()";
 
-int gettoken(char **ps, char *es, char **q, char **eq)
-{
+int gettoken(char **ps, char *es, char **q, char **eq) {
 	char *s;
 	int ret;
 
@@ -316,8 +305,7 @@ int gettoken(char **ps, char *es, char **q, char **eq)
 	return ret;
 }
 
-int peek(char **ps, char *es, char *toks)
-{
+int peek(char **ps, char *es, char *toks) {
 	char *s;
 
 	s = *ps;
@@ -332,8 +320,7 @@ struct cmd *parsepipe(char **, char *);
 struct cmd *parseexec(char **, char *);
 struct cmd *nulterminate(struct cmd *);
 
-struct cmd *parsecmd(char *s)
-{
+struct cmd *parsecmd(char *s) {
 	char *es;
 	struct cmd *cmd;
 
@@ -348,8 +335,7 @@ struct cmd *parsecmd(char *s)
 	return cmd;
 }
 
-struct cmd *parseline(char **ps, char *es)
-{
+struct cmd *parseline(char **ps, char *es) {
 	struct cmd *cmd;
 
 	cmd = parsepipe(ps, es);
@@ -364,8 +350,7 @@ struct cmd *parseline(char **ps, char *es)
 	return cmd;
 }
 
-struct cmd *parsepipe(char **ps, char *es)
-{
+struct cmd *parsepipe(char **ps, char *es) {
 	struct cmd *cmd;
 
 	cmd = parseexec(ps, es);
@@ -376,8 +361,7 @@ struct cmd *parsepipe(char **ps, char *es)
 	return cmd;
 }
 
-struct cmd *parseredirs(struct cmd *cmd, char **ps, char *es)
-{
+struct cmd *parseredirs(struct cmd *cmd, char **ps, char *es) {
 	int tok;
 	char *q, *eq;
 
@@ -400,8 +384,7 @@ struct cmd *parseredirs(struct cmd *cmd, char **ps, char *es)
 	return cmd;
 }
 
-struct cmd *parseblock(char **ps, char *es)
-{
+struct cmd *parseblock(char **ps, char *es) {
 	struct cmd *cmd;
 
 	if (!peek(ps, es, "("))
@@ -415,8 +398,7 @@ struct cmd *parseblock(char **ps, char *es)
 	return cmd;
 }
 
-struct cmd *parseexec(char **ps, char *es)
-{
+struct cmd *parseexec(char **ps, char *es) {
 	char *q, *eq;
 	int tok, argc;
 	struct execcmd *cmd;
@@ -448,8 +430,7 @@ struct cmd *parseexec(char **ps, char *es)
 }
 
 // NUL-terminate all the counted strings.
-struct cmd *nulterminate(struct cmd *cmd)
-{
+struct cmd *nulterminate(struct cmd *cmd) {
 	int i;
 	struct backcmd *bcmd;
 	struct execcmd *ecmd;

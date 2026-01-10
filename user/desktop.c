@@ -18,8 +18,7 @@ struct RGBA buttonColor;
 struct RGBA textColor;
 char *GUI_programs[] = {"shell", "editor", "explorer", "demo"};
 
-void startProgramHandler(Widget *widget, message *msg)
-{
+void startProgramHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_DBCLICK) {
 		if (fork() == 0) {
 			// printf(1, "fork new process\n");
@@ -30,8 +29,7 @@ void startProgramHandler(Widget *widget, message *msg)
 	}
 }
 
-void startWindowHandler(Widget *widget, message *msg)
-{
+void startWindowHandler(Widget *widget, message *msg) {
 	int mouse_x = msg->params[0];
 	int mouse_y = msg->params[1];
 	if (msg->msg_type == M_MOUSE_LEFT_CLICK && mouse_x < START_ICON_WIDTH &&
@@ -46,8 +44,7 @@ void startWindowHandler(Widget *widget, message *msg)
 	}
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
 	desktop.width = SCREEN_WIDTH;
 	desktop.height = SCREEN_HEIGHT;

@@ -8,8 +8,7 @@
 #include "x86.h"
 
 // Fetch functions (fetchint, fetchstr, argint, argptr, argstr) tetap sama...
-int fetchint(uint addr, int *ip)
-{
+int fetchint(uint addr, int *ip) {
 	struct proc *curproc = myproc();
 	if (addr >= curproc->sz || addr + 4 > curproc->sz)
 		return -1;
@@ -17,8 +16,7 @@ int fetchint(uint addr, int *ip)
 	return 0;
 }
 
-int fetchstr(uint addr, char **pp)
-{
+int fetchstr(uint addr, char **pp) {
 	char *s, *ep;
 	struct proc *curproc = myproc();
 	if (addr >= curproc->sz)
@@ -32,13 +30,11 @@ int fetchstr(uint addr, char **pp)
 	return -1;
 }
 
-int argint(int n, int *ip)
-{
+int argint(int n, int *ip) {
 	return fetchint((myproc()->tf->esp) + 4 + 4 * n, ip);
 }
 
-int argptr(int n, char **pp, int size)
-{
+int argptr(int n, char **pp, int size) {
 	int i;
 	struct proc *curproc = myproc();
 	if (argint(n, &i) < 0)
@@ -49,8 +45,7 @@ int argptr(int n, char **pp, int size)
 	return 0;
 }
 
-int argstr(int n, char **pp)
-{
+int argstr(int n, char **pp) {
 	int addr;
 	if (argint(n, &addr) < 0)
 		return -1;
@@ -128,8 +123,7 @@ static int (*syscalls[])(void) = {
 	[SYS_reboot] sys_reboot,
 };
 
-void syscall(void)
-{
+void syscall(void) {
 	int num;
 	struct proc *curproc = myproc();
 

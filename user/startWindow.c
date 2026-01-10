@@ -14,8 +14,7 @@ window startWindow;
 char *GUI_programs[] = {"shell", "editor", "explorer", "demo"};
 
 // Handler untuk menjalankan program (Double Click)
-void startProgramHandler(Widget *widget, message *msg)
-{
+void startProgramHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_DBCLICK) {
 		if (fork() == 0) {
 			printf(1, "fork new process\n");
@@ -27,23 +26,20 @@ void startProgramHandler(Widget *widget, message *msg)
 }
 
 // Handler untuk Restart (M_MOUSE_DOWN agar sekali klik langsung jalan)
-void rebootHandler(Widget *widget, message *msg)
-{
+void rebootHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_DOWN || msg->msg_type == M_MOUSE_DBCLICK) {
 		reboot();
 	}
 }
 
 // Handler untuk Shutdown (M_MOUSE_DOWN agar sekali klik langsung jalan)
-void shutdownHandler(Widget *widget, message *msg)
-{
+void shutdownHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_DOWN || msg->msg_type == M_MOUSE_DBCLICK) {
 		halt();
 	}
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	int caller = (int)argv[1];
 
 	startWindow.width = 3 * START_ICON_WIDTH;

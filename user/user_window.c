@@ -14,8 +14,7 @@ void drawInputFieldWidget(window *win, Widget *w);
 void drawShapeWidget(window *win, Widget *w);
 int freeWidget(window *win, int index);
 
-void debugPrintWidgetList(window *win)
-{
+void debugPrintWidgetList(window *win) {
 
 	printf(1, "############################\n");
 	printf(1, "current Head at %d\n", win->widgetlisthead);
@@ -41,13 +40,11 @@ void debugPrintWidgetList(window *win)
 	}
 }
 
-int isInRect(int xmin, int ymin, int xmax, int ymax, int x, int y)
-{
+int isInRect(int xmin, int ymin, int xmax, int ymax, int x, int y) {
 	return (x >= xmin && x <= xmax && y >= ymin && y <= ymax);
 }
 
-void createPopupWindow(window *win, int caller)
-{
+void createPopupWindow(window *win, int caller) {
 
 	int width = win->width;
 	int height = win->height;
@@ -71,8 +68,7 @@ void createPopupWindow(window *win, int caller)
 	GUI_createPopupWindow(win, caller);
 }
 
-void closePopupWindow(window *win)
-{
+void closePopupWindow(window *win) {
 	free(win->window_buf);
 	for (int p = win->widgetlisthead; p != -1; p = win->widgets[p].next) {
 		freeWidget(win, p);
@@ -81,8 +77,7 @@ void closePopupWindow(window *win)
 	exit();
 }
 
-void createWindow(window *win, const char *title)
-{
+void createWindow(window *win, const char *title) {
 
 	int width = win->width;
 	int height = win->height;
@@ -111,8 +106,7 @@ void createWindow(window *win, const char *title)
 	GUI_createWindow(win, title);
 }
 
-void closeWindow(window *win)
-{
+void closeWindow(window *win) {
 	free(win->window_buf);
 	for (int p = win->widgetlisthead; p != -1; p = win->widgets[p].next) {
 		freeWidget(win, p);
@@ -121,8 +115,7 @@ void closeWindow(window *win)
 	exit();
 }
 
-void repaintWindow(window *win)
-{
+void repaintWindow(window *win) {
 	if (win->needsRepaint) {
 		// memset(win->window_buf, 255, win->height * win->width * 3);
 		for (int p = win->widgetlisthead; p != -1;
@@ -173,8 +166,7 @@ void repaintWindow(window *win)
 	}
 }
 
-void updateWindow(window *win)
-{
+void updateWindow(window *win) {
 	repaintWindow(win);
 	message msg;
 
@@ -249,8 +241,7 @@ void updateWindow(window *win)
 }
 
 // TODO: this function remains a update
-void updatePopupWindow(window *win)
-{
+void updatePopupWindow(window *win) {
 	repaintWindow(win);
 
 	message msg;
@@ -300,16 +291,14 @@ void updatePopupWindow(window *win)
 	return;
 }
 
-void setWidgetSize(Widget *widget, int x, int y, int w, int h)
-{
+void setWidgetSize(Widget *widget, int x, int y, int w, int h) {
 	widget->position.xmin = x;
 	widget->position.ymin = y;
 	widget->position.xmax = x + w;
 	widget->position.ymax = y + h;
 }
 
-int findNextAvailable(window *win)
-{
+int findNextAvailable(window *win) {
 
 	for (int i = 0; i < MAX_WIDGET_SIZE; i++) {
 		if (win->widgets[i].prev == i && win->widgets[i].next == i) {
@@ -319,8 +308,7 @@ int findNextAvailable(window *win)
 	return -1;
 }
 
-int findWidgetId(window *win, Widget *widget)
-{
+int findWidgetId(window *win, Widget *widget) {
 
 	for (int i = 0; i < MAX_WIDGET_SIZE; i++) {
 		if (&win->widgets[i] == widget) {
@@ -330,8 +318,7 @@ int findWidgetId(window *win, Widget *widget)
 	return -1;
 }
 
-void addToWidgetListTail(window *win, int idx)
-{
+void addToWidgetListTail(window *win, int idx) {
 	win->widgets[idx].prev = win->widgetlisttail;
 	win->widgets[idx].next = -1;
 	if (win->widgetlisttail != -1)
@@ -339,8 +326,7 @@ void addToWidgetListTail(window *win, int idx)
 	win->widgetlisttail = idx;
 }
 
-void removeFromWidgetList(window *win, int idx)
-{
+void removeFromWidgetList(window *win, int idx) {
 	if (win->widgetlisthead == idx)
 		win->widgetlisthead = win->widgets[win->widgetlisttail].next;
 	if (win->widgetlisttail == idx)
@@ -355,8 +341,7 @@ void removeFromWidgetList(window *win, int idx)
 	win->widgets[idx].next = idx;
 }
 
-int addWidget(window *win)
-{
+int addWidget(window *win) {
 	int widgetId = findNextAvailable(win);
 	if (widgetId == -1)
 		return -1;
@@ -369,8 +354,7 @@ int addWidget(window *win)
 	return widgetId;
 }
 
-int freeWidget(window *win, int index)
-{
+int freeWidget(window *win, int index) {
 	switch (win->widgets[index].type) {
 	case COLORFILL:
 		free(win->widgets[index].context.colorfill);
@@ -391,8 +375,7 @@ int freeWidget(window *win, int index)
 	return 0;
 }
 
-int removeWidget(window *win, int index)
-{
+int removeWidget(window *win, int index) {
 	if (win->widgets[index].prev == index &&
 	    win->widgets[index].next == index) {
 		return -1;
@@ -402,15 +385,13 @@ int removeWidget(window *win, int index)
 	return 0;
 }
 
-int setWidgetHandler(window *win, int index, Handler handler)
-{
+int setWidgetHandler(window *win, int index, Handler handler) {
 	win->widgets[index].handler = handler;
 	return 0;
 }
 
 int addRectangleWidget(window *win, RGBA c, RGBA filledColor, int filled, int x,
-		       int y, int w, int h, int scrollable, Handler handler)
-{
+		       int y, int w, int h, int scrollable, Handler handler) {
 
 	int widgetId = addWidget(win);
 	if (widgetId == -1)
@@ -436,8 +417,7 @@ int addRectangleWidget(window *win, RGBA c, RGBA filledColor, int filled, int x,
 }
 
 int addColorFillWidget(window *win, RGBA c, int x, int y, int w, int h,
-		       int scrollable, Handler handler)
-{
+		       int scrollable, Handler handler) {
 
 	int widgetId = addWidget(win);
 	if (widgetId == -1)
@@ -457,8 +437,7 @@ int addColorFillWidget(window *win, RGBA c, int x, int y, int w, int h,
 }
 
 int addButtonWidget(window *win, RGBA c, RGBA bc, char *text, int x, int y,
-		    int w, int h, int scrollable, Handler handler)
-{
+		    int w, int h, int scrollable, Handler handler) {
 
 	int widgetId = addWidget(win);
 	if (widgetId == -1)
@@ -479,8 +458,7 @@ int addButtonWidget(window *win, RGBA c, RGBA bc, char *text, int x, int y,
 }
 
 int addTextWidget(window *win, RGBA c, char *text, int x, int y, int w, int h,
-		  int scrollable, Handler handler)
-{
+		  int scrollable, Handler handler) {
 
 	int widgetId = addWidget(win);
 	if (widgetId == -1)
@@ -500,8 +478,7 @@ int addTextWidget(window *win, RGBA c, char *text, int x, int y, int w, int h,
 }
 
 int addInputFieldWidget(window *win, RGBA c, char *text, int x, int y, int w,
-			int h, int scrollable, Handler handler)
-{
+			int h, int scrollable, Handler handler) {
 
 	int widgetId = addWidget(win);
 	if (widgetId == -1)
@@ -523,8 +500,7 @@ int addInputFieldWidget(window *win, RGBA c, char *text, int x, int y, int w,
 	return widgetId;
 }
 
-void drawColorFillWidget(window *win, Widget *w)
-{
+void drawColorFillWidget(window *win, Widget *w) {
 	int width = w->position.xmax - w->position.xmin;
 	int height = w->position.ymax - w->position.ymin;
 	int xmin = w->position.xmin, ymin = w->position.ymin;
@@ -536,8 +512,7 @@ void drawColorFillWidget(window *win, Widget *w)
 	draw24Image(win, w->context.colorfill->buf, xmin, ymin, width, height);
 }
 
-void drawButtonWidget(window *win, Widget *w)
-{
+void drawButtonWidget(window *win, Widget *w) {
 	RGB black;
 	black.R = 0;
 	black.G = 0;
@@ -565,8 +540,7 @@ void drawButtonWidget(window *win, Widget *w)
 }
 
 // TODO: shape is not actually used in current version
-void drawShapeWidget(window *win, Widget *w)
-{
+void drawShapeWidget(window *win, Widget *w) {
 	Shape *widget = w->context.shape;
 	int shape = widget->shape;
 	switch (shape) {
@@ -584,8 +558,7 @@ void drawShapeWidget(window *win, Widget *w)
 	}
 }
 
-void drawTextWidget(window *win, Widget *w)
-{
+void drawTextWidget(window *win, Widget *w) {
 	int xmin = w->position.xmin, ymin = w->position.ymin;
 	if (w->scrollable) {
 		xmin = w->position.xmin - win->scrollOffsetX;
@@ -598,8 +571,7 @@ void drawTextWidget(window *win, Widget *w)
 		   ymin, width, height);
 }
 
-void drawInputFieldWidget(window *win, Widget *w)
-{
+void drawInputFieldWidget(window *win, Widget *w) {
 	int xmin = w->position.xmin, ymin = w->position.ymin;
 	if (w->scrollable) {
 		xmin = w->position.xmin - win->scrollOffsetX;

@@ -1,13 +1,13 @@
-// On-disk file system format.
-// Both the kernel and user programs use this header file.
+#ifndef FS_H
+#define FS_H
+
+#include "param.h" // Agar BSIZE (2048) terbaca dari satu sumber
+#include "types.h"
 
 #define ROOTINO 1 // root i-number
-//#define BSIZE 512
-#define BSIZE 2048 // block size
 
 // Disk layout:
-// [ boot block | super block | log | inode blocks |
-//                                          free bit map | data blocks]
+// [ boot block | super block | log | inode blocks | free bit map | data blocks]
 //
 // mkfs computes the super block and builds an initial file system. The
 // super block describes the disk layout:
@@ -44,13 +44,15 @@ struct dinode {
 // Bitmap bits per block
 #define BPB (BSIZE * 8)
 
-// Block of free map containing bit for block b
-#define BBLOCK(b, sb) (b / BPB + sb.bmapstart)
+// Block containing bit for block b
+#define BBLOCK(b, sb) ((b) / BPB + sb.bmapstart)
 
 // Directory is a file containing a sequence of dirent structures.
-#define DIRSIZ 30
+#define DIRSIZ 14
 
 struct dirent {
 	ushort inum;
 	char name[DIRSIZ];
 };
+
+#endif // FS_H

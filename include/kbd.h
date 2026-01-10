@@ -1,3 +1,8 @@
+#ifndef KBD_H
+#define KBD_H
+
+#include "types.h" // Tambahkan ini agar 'uchar' dikenali
+
 // PC keyboard interface constants
 
 #define KBSTATP 0x64 // kbd controller status port(I)
@@ -307,3 +312,4 @@ static uchar ctlmap[256] = {NO,
 			    [0xCF] KEY_END,
 			    [0xD2] KEY_INS,
 			    [0xD3] KEY_DEL};
+#endif // KBD_H

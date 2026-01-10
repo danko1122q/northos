@@ -15,8 +15,7 @@ int file = -1;
 
 int lastMaximumOffset = 0;
 
-void buttonHandler(Widget *widget, message *msg)
-{
+void buttonHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_LEFT_CLICK ||
 	    msg->msg_type == M_MOUSE_DBCLICK) {
 		if (file != -1) {
@@ -38,8 +37,7 @@ void buttonHandler(Widget *widget, message *msg)
 	}
 }
 
-void inputHandler(Widget *w, message *msg)
-{
+void inputHandler(Widget *w, message *msg) {
 
 	int width = w->position.xmax - w->position.xmin;
 	int height = w->position.ymax - w->position.ymin;
@@ -83,8 +81,7 @@ void inputHandler(Widget *w, message *msg)
 	}
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
 	struct RGBA bgColor;
 	struct RGBA textColor;

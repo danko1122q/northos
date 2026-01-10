@@ -1,3 +1,9 @@
+#ifndef DEFS_H
+#define DEFS_H
+
+#include "gui.h"
+#include "types.h" // WAJIB: Agar uint, ushort, pde_t, dll dikenali
+
 struct buf;
 struct context;
 struct file;
@@ -228,3 +234,5 @@ void clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))
+
+#endif // DEFS_H

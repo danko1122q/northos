@@ -7,8 +7,7 @@
 
 static struct spinlock kbdlock;
 
-int kbdgetc(void)
-{
+int kbdgetc(void) {
 	static uint shift;
 	static uchar *charcode[4] = {normalmap, shiftmap, ctlmap, ctlmap};
 	uint st, data, c;
@@ -57,8 +56,7 @@ int kbdgetc(void)
 	return c;
 }
 
-void kbdintr(void)
-{
+void kbdintr(void) {
 	//  consoleintr(kbdgetc);
 	acquire(&kbdlock);
 	kbdgetc();

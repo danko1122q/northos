@@ -1,3 +1,7 @@
+#ifndef MMU_H // Tambahkan ini di baris paling atas
+#define MMU_H
+
+#include "types.h"
 // This file contains definitions for the
 // x86 memory management unit (MMU).
 
@@ -41,15 +45,13 @@ struct segdesc {
 
 // Normal segment
 #define SEG(type, base, lim, dpl)                                              \
-	(struct segdesc)                                                       \
-	{                                                                      \
+	(struct segdesc) {                                                     \
 		((lim) >> 12) & 0xffff, (uint)(base)&0xffff,                   \
 			((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,          \
 			(uint)(lim) >> 28, 0, 0, 1, 1, (uint)(base) >> 24      \
 	}
 #define SEG16(type, base, lim, dpl)                                            \
-	(struct segdesc)                                                       \
-	{                                                                      \
+	(struct segdesc) {                                                     \
 		(lim) & 0xffff, (uint)(base)&0xffff,                           \
 			((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,          \
 			(uint)(lim) >> 16, 0, 0, 1, 0, (uint)(base) >> 24      \
@@ -72,7 +74,7 @@ struct segdesc {
 //
 // +--------10------+-------10-------+---------12----------+
 // | Page Directory |   Page Table   | Offset within Page  |
-// |      Index     |      Index     |                     |
+// |     Index      |      Index      |                     |
 // +----------------+----------------+---------------------+
 //  \--- PDX(va) --/ \--- PTX(va) --/
 
@@ -164,13 +166,6 @@ struct gatedesc {
 };
 
 // Set up a normal interrupt/trap gate descriptor.
-// - istrap: 1 for a trap (= exception) gate, 0 for an interrupt gate.
-//   interrupt gate clears FL_IF, trap gate leaves FL_IF alone
-// - sel: Code segment selector for interrupt/trap handler
-// - off: Offset in code segment for interrupt/trap handler
-// - dpl: Descriptor Privilege Level -
-//        the privilege level required for software to invoke
-//        this interrupt/trap gate explicitly using an int instruction.
 #define SETGATE(gate, istrap, sel, off, d)                                     \
 	{                                                                      \
 		(gate).off_15_0 = (uint)(off)&0xffff;                          \
@@ -185,3 +180,5 @@ struct gatedesc {
 	}
 
 #endif
+
+#endif // Tambahkan ini di baris paling bawah

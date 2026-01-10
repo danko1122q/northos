@@ -1,10 +1,12 @@
-// Format of an ELF executable file
+#ifndef ELF_H
+#define ELF_H
 
-#define ELF_MAGIC 0x464C457FU // "\x7FELF" in little endian
+#include "types.h"
 
-// File header
+#define ELF_MAGIC 0x464C457FU
+
 struct elfhdr {
-	uint magic; // must equal ELF_MAGIC
+	uint magic;
 	uchar elf[12];
 	ushort type;
 	ushort machine;
@@ -21,7 +23,6 @@ struct elfhdr {
 	ushort shstrndx;
 };
 
-// Program section header
 struct proghdr {
 	uint type;
 	uint off;
@@ -33,10 +34,9 @@ struct proghdr {
 	uint align;
 };
 
-// Values for Proghdr type
 #define ELF_PROG_LOAD 1
-
-// Flag bits for Proghdr flags
 #define ELF_PROG_FLAG_EXEC 1
 #define ELF_PROG_FLAG_WRITE 2
 #define ELF_PROG_FLAG_READ 4
+
+#endif // ELF_H

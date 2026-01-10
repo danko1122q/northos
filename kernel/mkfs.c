@@ -46,8 +46,7 @@ void rsect(uint sec, void *buf);
 uint ialloc(ushort type);
 void iappend(uint inum, void *p, int n);
 
-ushort xshort(ushort x)
-{
+ushort xshort(ushort x) {
 	ushort y;
 	uchar *a = (uchar *)&y;
 	a[0] = x;
@@ -55,8 +54,7 @@ ushort xshort(ushort x)
 	return y;
 }
 
-uint xint(uint x)
-{
+uint xint(uint x) {
 	uint y;
 	uchar *a = (uchar *)&y;
 	a[0] = x;
@@ -66,8 +64,7 @@ uint xint(uint x)
 	return y;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	int i, cc, fd;
 	uint rootino, inum, off;
 	struct dirent de;
@@ -175,8 +172,7 @@ int main(int argc, char *argv[])
 // ... (fungsi wsect, winode, rinode, rsect, ialloc, balloc, iappend tetap sama)
 // ...
 
-void wsect(uint sec, void *buf)
-{
+void wsect(uint sec, void *buf) {
 	if (lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE) {
 		perror("lseek");
 		exit(1);
@@ -187,8 +183,7 @@ void wsect(uint sec, void *buf)
 	}
 }
 
-void winode(uint inum, struct dinode *ip)
-{
+void winode(uint inum, struct dinode *ip) {
 	char buf[BSIZE];
 	uint bn;
 	struct dinode *dip;
@@ -199,8 +194,7 @@ void winode(uint inum, struct dinode *ip)
 	wsect(bn, buf);
 }
 
-void rinode(uint inum, struct dinode *ip)
-{
+void rinode(uint inum, struct dinode *ip) {
 	char buf[BSIZE];
 	uint bn;
 	struct dinode *dip;
@@ -210,8 +204,7 @@ void rinode(uint inum, struct dinode *ip)
 	*ip = *dip;
 }
 
-void rsect(uint sec, void *buf)
-{
+void rsect(uint sec, void *buf) {
 	if (lseek(fsfd, sec * BSIZE, 0) != sec * BSIZE) {
 		perror("lseek");
 		exit(1);
@@ -222,8 +215,7 @@ void rsect(uint sec, void *buf)
 	}
 }
 
-uint ialloc(ushort type)
-{
+uint ialloc(ushort type) {
 	uint inum = freeinode++;
 	struct dinode din;
 	memset(&din, 0, sizeof(din));
@@ -234,8 +226,7 @@ uint ialloc(ushort type)
 	return inum;
 }
 
-void balloc(int used)
-{
+void balloc(int used) {
 	uchar buf[BSIZE];
 	int i;
 	printf("balloc: first %d blocks have been allocated\n", used);
@@ -249,8 +240,7 @@ void balloc(int used)
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
-void iappend(uint inum, void *xp, int n)
-{
+void iappend(uint inum, void *xp, int n) {
 	char *p = (char *)xp;
 	uint fbn, off, n1;
 	struct dinode din;
