@@ -1,8 +1,8 @@
 #include "msg.h"
-#include "types.h"
 #include "defs.h"
+#include "types.h"
 
-int handleMessage(message* msg)
+int handleMessage(message *msg)
 {
 	/*
 	if (msg->msg_type == M_KEY_UP)
@@ -15,7 +15,8 @@ int handleMessage(message* msg)
 	}
 	else if (msg->msg_type == M_MOUSE_MOVE)
 	{
-		cprintf("MOUSE MOVE: dx=%d, dy=%d, btn=%x\n", msg->params[0], msg->params[1], msg->params[2]);
+		cprintf("MOUSE MOVE: dx=%d, dy=%d, btn=%x\n", msg->params[0],
+	msg->params[1], msg->params[2]);
 	}
 	else if (msg->msg_type == M_MOUSE_DOWN)
 	{
@@ -27,6 +28,6 @@ int handleMessage(message* msg)
 	}
 	*/
 	wmHandleMessage(msg);
-	
+
 	return 0;
 }

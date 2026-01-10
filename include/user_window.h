@@ -23,7 +23,7 @@
 
 struct Widget;
 // @para: window widget_index message
-typedef void(*Handler)(struct Widget * widget, struct message *msg);
+typedef void (*Handler)(struct Widget *widget, struct message *msg);
 
 #define TEXT 0
 #define INPUTFIELD 1
@@ -38,73 +38,73 @@ typedef void(*Handler)(struct Widget * widget, struct message *msg);
 #define CIRCLE 2
 
 typedef struct Shape {
-    int shape;
-    int params[10];
-    int filled;
-    struct RGBA color;
-    struct RGBA filledColor;
+	int shape;
+	int params[10];
+	int filled;
+	struct RGBA color;
+	struct RGBA filledColor;
 } Shape;
 
 typedef struct ColorFill {
-    struct RGB* buf;
+	struct RGB *buf;
 } ColorFill;
 
 typedef struct Button {
-    struct RGBA color;
-    struct RGBA bg_color;
-    char text[MAX_SHORT_STRLEN];
+	struct RGBA color;
+	struct RGBA bg_color;
+	char text[MAX_SHORT_STRLEN];
 } Button;
 
 typedef struct Text {
-    struct RGBA color;
-    char text[MAX_LONG_STRLEN];
+	struct RGBA color;
+	char text[MAX_LONG_STRLEN];
 } Text;
 
 typedef struct InputField {
-    struct RGBA color;
-    char text[MAX_LONG_STRLEN];
-    int current_pos;
+	struct RGBA color;
+	char text[MAX_LONG_STRLEN];
+	int current_pos;
 } InputField;
 
 typedef struct Icon {
-    struct RGBA color;
-    struct RGBA bg_color;
-    int icon;
+	struct RGBA color;
+	struct RGBA bg_color;
+	int icon;
 } Icon;
 
 typedef union widget_base {
-    ColorFill* colorfill;
-    Button *button;
-    Text *text;
-    InputField *inputfield;
-    Icon * icon;
-    Shape* shape;
+	ColorFill *colorfill;
+	Button *button;
+	Text *text;
+	InputField *inputfield;
+	Icon *icon;
+	Shape *shape;
 } widget_base;
 
 typedef struct Widget {
-    widget_base context;
-    int type;
-    win_rect position;
-    int scrollable;
-    int next, prev;
-    Handler handler;
+	widget_base context;
+	int type;
+	win_rect position;
+	int scrollable;
+	int next, prev;
+	Handler handler;
 } Widget;
 
 typedef struct window {
-    win_rect initialPosition;
-    int hasTitleBar;
-    struct RGB *window_buf;
-    int width;
-    int height;
-    int scrollOffsetX;
-    int scrollOffsetY;
-    int handler;
-    struct Widget widgets[MAX_WIDGET_SIZE];
-    int widgetlisthead, widgetlisttail;
-    int keyfocus;
-    int needsRepaint;
+	win_rect initialPosition;
+	int hasTitleBar;
+	struct RGB *window_buf;
+	int width;
+	int height;
+	int scrollOffsetX;
+	int scrollOffsetY;
+	int handler;
+	struct Widget widgets[MAX_WIDGET_SIZE];
+	int widgetlisthead, widgetlisttail;
+	int keyfocus;
+	int needsRepaint;
 } window;
 
-typedef window* window_p;
+typedef window *window_p;
 
 #endif

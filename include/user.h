@@ -41,8 +41,8 @@ int GUI_maximizeWindow(struct window *);
 int GUI_minimizeWindow(struct window *);
 int GUI_createPopupWindow(struct window *, int);
 int GUI_closePopupWindow(struct window *);
-int halt(void);    // System call baru
-int reboot(void);  // System call baru
+int halt(void);	  // System call baru
+int reboot(void); // System call baru
 
 // ulib.c
 int stat(const char *, struct stat *);
@@ -66,28 +66,43 @@ void createWindow(struct window *, const char *);
 void closeWindow(struct window *);
 void updateWindow(struct window *);
 void updatePopupWindow(struct window *);
-int addButtonWidget(struct window *win, struct RGBA c, struct RGBA bc, char *text, int x, int y, int w, int h, int, Handler handler);
-int addTextWidget(struct window *win, struct RGBA c, char *text, int x, int y, int w, int h, int, Handler handler);
-int addInputFieldWidget(struct window *win, struct RGBA c, char *text, int x, int y, int w, int h, int, Handler handler);
-int addColorFillWidget(struct window *win, struct RGBA c, int x, int y, int w, int h, int, Handler handler);
-int addRectangleWidget(struct window *win, struct RGBA c, struct RGBA filledColor, int filled, int x, int y, int w, int h, int scrollable, Handler handler);
+int addButtonWidget(struct window *win, struct RGBA c, struct RGBA bc,
+		    char *text, int x, int y, int w, int h, int,
+		    Handler handler);
+int addTextWidget(struct window *win, struct RGBA c, char *text, int x, int y,
+		  int w, int h, int, Handler handler);
+int addInputFieldWidget(struct window *win, struct RGBA c, char *text, int x,
+			int y, int w, int h, int, Handler handler);
+int addColorFillWidget(struct window *win, struct RGBA c, int x, int y, int w,
+		       int h, int, Handler handler);
+int addRectangleWidget(struct window *win, struct RGBA c,
+		       struct RGBA filledColor, int filled, int x, int y, int w,
+		       int h, int scrollable, Handler handler);
 int removeWidget(struct window *win, int index);
 int setWidgetHandler(struct window *win, int index, Handler handler);
 
 // user_gui.c
-void fillRect(struct RGB *buf, int x, int y, int width, int height, int max_x, int max_y, struct RGBA fill);
-void drawRect(struct window *win, struct RGB color, int x, int y, int width, int height);
-void drawFillRect(struct window *win, struct RGBA color, int x, int y, int width, int height);
-void drawString(struct window *win, char *str, struct RGBA color, int x, int y, int width, int height);
-void draw24Image(struct window *win, struct RGB *img, int x, int y, int width, int height);
-void drawIcon(struct window *win, int icon, struct RGBA color, int x, int y, int width, int height);
+void fillRect(struct RGB *buf, int x, int y, int width, int height, int max_x,
+	      int max_y, struct RGBA fill);
+void drawRect(struct window *win, struct RGB color, int x, int y, int width,
+	      int height);
+void drawFillRect(struct window *win, struct RGBA color, int x, int y,
+		  int width, int height);
+void drawString(struct window *win, char *str, struct RGBA color, int x, int y,
+		int width, int height);
+void draw24Image(struct window *win, struct RGB *img, int x, int y, int width,
+		 int height);
+void drawIcon(struct window *win, int icon, struct RGBA color, int x, int y,
+	      int width, int height);
 
 // user_handler.c
 void emptyHandler(struct Widget *w, struct message *msg);
-int getInputOffsetFromMousePosition(char *str, int width, int mouse_x, int mouse_y);
+int getInputOffsetFromMousePosition(char *str, int width, int mouse_x,
+				    int mouse_y);
 int getMouseXFromOffset(char *str, int width, int offset);
 int getMouseYFromOffset(char *str, int width, int offset);
 void inputMouseLeftClickHandler(struct Widget *w, struct message *msg);
 void inputFieldKeyHandler(struct Widget *w, struct message *msg);
 int getScrollableTotalHeight(struct window *win);
-int addScrollBarWidget(struct window *window, struct RGBA color, Handler handler);
+int addScrollBarWidget(struct window *window, struct RGBA color,
+		       Handler handler);

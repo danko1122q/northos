@@ -11,20 +11,16 @@
 
 #include "msg.h"
 
-typedef struct win_rect
-{
+typedef struct win_rect {
 	int xmin, xmax, ymin, ymax;
 } win_rect;
 
-typedef struct msg_buf
-{
+typedef struct msg_buf {
 	message data[MSG_BUF_SIZE];
 	int front, rear, cnt;
 } msg_buf;
 
-
-typedef struct kernel_window
-{
+typedef struct kernel_window {
 	win_rect position;
 	struct RGB *window_buf;
 	struct msg_buf msg_buf;

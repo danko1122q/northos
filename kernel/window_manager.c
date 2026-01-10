@@ -1,13 +1,13 @@
-#include "types.h"
-#include "x86.h"
-#include "param.h"
 #include "defs.h"
-#include "msg.h"
-#include "spinlock.h"
+#include "gui.h"
 #include "memlayout.h"
 #include "mmu.h"
+#include "msg.h"
+#include "param.h"
 #include "proc.h"
-#include "gui.h"
+#include "spinlock.h"
+#include "types.h"
+#include "x86.h"
 
 #include "user_window.h"
 
@@ -26,9 +26,8 @@ struct RGBA iconColor;
 
 #define MAX_WINDOW_CNT 50
 
-//linked-list of windows
-static struct
-{
+// linked-list of windows
+static struct {
 	struct proc *proc;
 	kernel_window wnd;
 	int next, prev;
@@ -37,8 +36,7 @@ static struct
 static int windowlisthead, windowlisttail;
 static int desktopId = -1;
 
-static struct
-{
+static struct {
 	struct proc *proc;
 	kernel_window wnd;
 	int caller;
@@ -50,8 +48,7 @@ static int clickedOnTitle, clickedOnContent, clickedOnPopup;
 
 struct spinlock wmlock;
 
-static struct
-{
+static struct {
 	int x, y;
 } wm_mouse_pos, wm_last_mouse_pos;
 
@@ -89,10 +86,8 @@ void moveRect(win_rect *rect, int dx, int dy)
 
 int findNextAvailableWindowId()
 {
-	for (int i = 0; i < MAX_WINDOW_CNT; i++)
-	{
-		if (windowlist[i].prev == i && windowlist[i].next == i)
-		{
+	for (int i = 0; i < MAX_WINDOW_CNT; i++) {
+		if (windowlist[i].prev == i && windowlist[i].next == i) {
 			return i;
 		}
 	}
@@ -118,10 +113,7 @@ void removeFromWindowList(int idx)
 		windowlist[windowlist[idx].next].prev = windowlist[idx].prev;
 }
 
-void initMessageQueue(msg_buf *buf)
-{
-	buf->front = buf->rear = buf->cnt = 0;
-}
+void initMessageQueue(msg_buf *buf) { buf->front = buf->rear = buf->cnt = 0; }
 
 int dispatchMessage(msg_buf *buf, message *msg)
 {
@@ -134,10 +126,10 @@ int dispatchMessage(msg_buf *buf, message *msg)
 	return 0;
 }
 
-//return non-zero if buf is empty
+// return non-zero if buf is empty
 int getMessage(msg_buf *buf, message *result)
 {
-	
+
 	if (buf->cnt == 0)
 		return 1;
 	acquire(&wmlock);
@@ -183,8 +175,7 @@ void wmInit()
 	windowlisthead = -1;
 	windowlisttail = -1;
 	int i;
-	for (i = 0; i < MAX_WINDOW_CNT; ++i)
-	{
+	for (i = 0; i < MAX_WINDOW_CNT; ++i) {
 		windowlist[i].next = i;
 		windowlist[i].prev = i;
 	}
@@ -206,8 +197,7 @@ void debugPrintWindowList()
 	cprintf("\n");
 
 	int p;
-	for (p = windowlisthead; p != -1; p = windowlist[p].next)
-	{
+	for (p = windowlisthead; p != -1; p = windowlist[p].next) {
 
 		cprintf("current Window at %d\n", p);
 		cprintf("current Window proc %d\n", windowlist[p].proc);
@@ -221,14 +211,11 @@ void focusWindow(int winId)
 {
 	if (winId == -1 || winId == windowlisttail)
 		return;
-	if (winId == windowlisthead)
-	{
+	if (winId == windowlisthead) {
 		int newhead = windowlist[winId].next;
 		windowlist[newhead].prev = -1;
 		windowlisthead = newhead;
-	}
-	else
-	{
+	} else {
 		int prevWin = windowlist[winId].prev;
 		int nextWin = windowlist[winId].next;
 		windowlist[prevWin].next = nextWin;
@@ -239,8 +226,7 @@ void focusWindow(int winId)
 
 void moveFocusWindow(int dx, int dy)
 {
-	if (windowlist[windowlisttail].wnd.hasTitleBar)
-	{
+	if (windowlist[windowlisttail].wnd.hasTitleBar) {
 		moveRect(&windowlist[windowlisttail].wnd.position, dx, dy);
 	}
 }
@@ -249,10 +235,8 @@ int getWindowCount()
 {
 	int windowCount = 0;
 
-	for (int p = windowlisthead; p != -1; p = windowlist[p].next)
-	{
-		if (p != desktopId)
-		{
+	for (int p = windowlisthead; p != -1; p = windowlist[p].next) {
+		if (p != desktopId) {
 			windowCount++;
 		}
 	}
@@ -264,24 +248,26 @@ void handleDesktopDockClick(int mouse_x, message *msg)
 	int p;
 	int windowCount = getWindowCount();
 
-	if (windowCount > 0) //handle each program dock bar click
+	if (windowCount > 0) // handle each program dock bar click
 	{
 		int xStart = START_ICON_WIDTH + 5;
-		int barWidth = min((SCREEN_WIDTH - START_ICON_WIDTH - SHOW_DESKTOP_ICON_WIDTH) / (windowCount + 1), DOCK_PROGRAM_NORMAL_WIDTH);
-		for (p = windowlisthead; p != -1; p = windowlist[p].next)
-		{
-			if (p != desktopId)
-			{
-				if (mouse_x > xStart + 1 && mouse_x <= xStart + barWidth - 1)
-				{
-					if (windowlist[p].wnd.minimized)
-					{
+		int barWidth = min((SCREEN_WIDTH - START_ICON_WIDTH -
+				    SHOW_DESKTOP_ICON_WIDTH) /
+					   (windowCount + 1),
+				   DOCK_PROGRAM_NORMAL_WIDTH);
+		for (p = windowlisthead; p != -1; p = windowlist[p].next) {
+			if (p != desktopId) {
+				if (mouse_x > xStart + 1 &&
+				    mouse_x <= xStart + barWidth - 1) {
+					if (windowlist[p].wnd.minimized) {
 						message newmsg;
-						newmsg.msg_type = WM_WINDOW_MAXIMIZE;
-						dispatchMessage(&windowlist[p].wnd.msg_buf, &newmsg);
-					}
-					else
-					{
+						newmsg.msg_type =
+							WM_WINDOW_MAXIMIZE;
+						dispatchMessage(
+							&windowlist[p]
+								 .wnd.msg_buf,
+							&newmsg);
+					} else {
 						focusWindow(p);
 					}
 					break;
@@ -290,50 +276,54 @@ void handleDesktopDockClick(int mouse_x, message *msg)
 			}
 		}
 	}
-	if (mouse_x >= SCREEN_WIDTH - SHOW_DESKTOP_ICON_WIDTH) //handle show desktop icon click
+	if (mouse_x >=
+	    SCREEN_WIDTH -
+		    SHOW_DESKTOP_ICON_WIDTH) // handle show desktop icon click
 	{
-		for (p = windowlisthead; p != -1; p = windowlist[p].next)
-		{
-			if (p != desktopId)
-			{
-				if (windowlist[p].wnd.minimized == 0)
-				{
+		for (p = windowlisthead; p != -1; p = windowlist[p].next) {
+			if (p != desktopId) {
+				if (windowlist[p].wnd.minimized == 0) {
 					message newmsg;
 					newmsg.msg_type = WM_WINDOW_MINIMIZE;
-					dispatchMessage(&windowlist[p].wnd.msg_buf, &newmsg);
+					dispatchMessage(
+						&windowlist[p].wnd.msg_buf,
+						&newmsg);
 				}
 			}
 		}
 	}
-	if (mouse_x <= START_ICON_WIDTH && msg->msg_type == M_MOUSE_LEFT_CLICK) //handle start window icon click
+	if (mouse_x <= START_ICON_WIDTH &&
+	    msg->msg_type ==
+		    M_MOUSE_LEFT_CLICK) // handle start window icon click
 	{
-		if (popupwindow.caller != desktopId)
-		{
+		if (popupwindow.caller != desktopId) {
 			message newmsg;
 			newmsg.msg_type = msg->msg_type;
 			newmsg.params[0] = wm_mouse_pos.x;
 			newmsg.params[1] = wm_mouse_pos.y;
-			dispatchMessage(&windowlist[desktopId].wnd.msg_buf, &newmsg);
+			dispatchMessage(&windowlist[desktopId].wnd.msg_buf,
+					&newmsg);
 		}
 	}
 }
 
-//handle messages from mouse and keyboard
+// handle messages from mouse and keyboard
 void wmHandleMessage(message *msg)
 {
 	acquire(&wmlock);
 
 	message newmsg;
-	switch (msg->msg_type)
-	{
+	switch (msg->msg_type) {
 	case M_MOUSE_MOVE:
 		wm_last_mouse_pos = wm_mouse_pos;
-		if (msg->params[0] > -SCREEN_WIDTH && msg->params[0] < SCREEN_WIDTH)
-		{
-			if (msg->params[1] > -SCREEN_HEIGHT && msg->params[0] < SCREEN_HEIGHT)
-			{
-				wm_mouse_pos.x += msg->params[0] * MOUSE_SPEED_X;
-				wm_mouse_pos.y += msg->params[1] * MOUSE_SPEED_Y;
+		if (msg->params[0] > -SCREEN_WIDTH &&
+		    msg->params[0] < SCREEN_WIDTH) {
+			if (msg->params[1] > -SCREEN_HEIGHT &&
+			    msg->params[0] < SCREEN_HEIGHT) {
+				wm_mouse_pos.x +=
+					msg->params[0] * MOUSE_SPEED_X;
+				wm_mouse_pos.y +=
+					msg->params[1] * MOUSE_SPEED_Y;
 			}
 		}
 
@@ -346,38 +336,48 @@ void wmHandleMessage(message *msg)
 		if (wm_mouse_pos.y < 0)
 			wm_mouse_pos.y = 0;
 
-		if (clickedOnTitle) //dragging the title bar
+		if (clickedOnTitle) // dragging the title bar
 		{
 			mouseShape = 1;
-			moveFocusWindow(wm_mouse_pos.x - wm_last_mouse_pos.x, wm_mouse_pos.y - wm_last_mouse_pos.y);
-		}
-		else if (clickedOnContent) //dragging inside the window
+			moveFocusWindow(wm_mouse_pos.x - wm_last_mouse_pos.x,
+					wm_mouse_pos.y - wm_last_mouse_pos.y);
+		} else if (clickedOnContent) // dragging inside the window
 		{
 			newmsg.msg_type = msg->msg_type;
-			newmsg.params[0] = wm_mouse_pos.x - windowlist[windowlisttail].wnd.position.xmin;
-			newmsg.params[1] = wm_mouse_pos.y - windowlist[windowlisttail].wnd.position.ymin;
-			dispatchMessage(&windowlist[windowlisttail].wnd.msg_buf, &newmsg);
+			newmsg.params[0] =
+				wm_mouse_pos.x -
+				windowlist[windowlisttail].wnd.position.xmin;
+			newmsg.params[1] =
+				wm_mouse_pos.y -
+				windowlist[windowlisttail].wnd.position.ymin;
+			dispatchMessage(&windowlist[windowlisttail].wnd.msg_buf,
+					&newmsg);
 		}
 		break;
 	case M_MOUSE_DOWN:
-		//check if clicked on the popup first
-		if (popupwindow.caller != -1 && isInRect(popupwindow.wnd.position.xmin, popupwindow.wnd.position.ymin, popupwindow.wnd.position.xmax, popupwindow.wnd.position.ymax, wm_mouse_pos.x, wm_mouse_pos.y))
-		{
+		// check if clicked on the popup first
+		if (popupwindow.caller != -1 &&
+		    isInRect(popupwindow.wnd.position.xmin,
+			     popupwindow.wnd.position.ymin,
+			     popupwindow.wnd.position.xmax,
+			     popupwindow.wnd.position.ymax, wm_mouse_pos.x,
+			     wm_mouse_pos.y)) {
 			clickedOnPopup = 1;
-		}
-		else
-		{
-			//close the popup first
+		} else {
+			// close the popup first
 			message closePopup;
 			closePopup.msg_type = WM_WINDOW_CLOSE;
 			dispatchMessage(&popupwindow.wnd.msg_buf, &closePopup);
-			//find the focus window
+			// find the focus window
 			int p = windowlisttail;
-			for (; p != -1; p = windowlist[p].prev)
-			{
+			for (; p != -1; p = windowlist[p].prev) {
 				kernel_window *win = &windowlist[p].wnd;
-				if (p != desktopId && win->minimized!=1 && isInRect(win->position.xmin, win->position.ymin - TITLE_HEIGHT, win->position.xmax, win->position.ymax, wm_mouse_pos.x, wm_mouse_pos.y))
-				{
+				if (p != desktopId && win->minimized != 1 &&
+				    isInRect(win->position.xmin,
+					     win->position.ymin - TITLE_HEIGHT,
+					     win->position.xmax,
+					     win->position.ymax, wm_mouse_pos.x,
+					     wm_mouse_pos.y)) {
 					focusWindow(p);
 					break;
 				}
@@ -385,35 +385,51 @@ void wmHandleMessage(message *msg)
 			if (p == -1)
 				focusWindow(desktopId);
 
-			//check if clicked on content or the title bar
+			// check if clicked on content or the title bar
 			kernel_window *win = &windowlist[windowlisttail].wnd;
-			if (isInRect(win->position.xmin, win->position.ymin - TITLE_HEIGHT, win->position.xmax, win->position.ymin, wm_mouse_pos.x, wm_mouse_pos.y))
-			{
-				if (wm_mouse_pos.x + 30 > win->position.xmax)
-				{
+			if (isInRect(win->position.xmin,
+				     win->position.ymin - TITLE_HEIGHT,
+				     win->position.xmax, win->position.ymin,
+				     wm_mouse_pos.x, wm_mouse_pos.y)) {
+				if (wm_mouse_pos.x + 30 > win->position.xmax) {
 					newmsg.msg_type = WM_WINDOW_CLOSE;
-					dispatchMessage(&windowlist[windowlisttail].wnd.msg_buf, &newmsg);
-				}
-				else if (wm_mouse_pos.x + 60 > win->position.xmax && wm_mouse_pos.x + 30 <= win->position.xmax)
-				{
-					//not nessasary for current design, we could just minimize the window here
-					//but we may want minimized window to halt updating so passing this message to the window first
+					dispatchMessage(
+						&windowlist[windowlisttail]
+							 .wnd.msg_buf,
+						&newmsg);
+				} else if (wm_mouse_pos.x + 60 >
+						   win->position.xmax &&
+					   wm_mouse_pos.x + 30 <=
+						   win->position.xmax) {
+					// not nessasary for current design, we
+					// could just minimize the window here
+					// but we may want minimized window to
+					// halt updating so passing this message
+					// to the window first
 					newmsg.msg_type = WM_WINDOW_MINIMIZE;
-					dispatchMessage(&windowlist[windowlisttail].wnd.msg_buf, &newmsg);
-				}
-				else
-				{
+					dispatchMessage(
+						&windowlist[windowlisttail]
+							 .wnd.msg_buf,
+						&newmsg);
+				} else {
 					clickedOnTitle = 1;
 				}
 			}
-			//dispatch the message
-			if (isInRect(win->position.xmin, win->position.ymin, win->position.xmax, win->position.ymax, wm_mouse_pos.x, wm_mouse_pos.y))
-			{
+			// dispatch the message
+			if (isInRect(win->position.xmin, win->position.ymin,
+				     win->position.xmax, win->position.ymax,
+				     wm_mouse_pos.x, wm_mouse_pos.y)) {
 				clickedOnContent = 1;
 				newmsg.msg_type = msg->msg_type;
-				newmsg.params[0] = wm_mouse_pos.x - popupwindow.wnd.position.xmin;
-				newmsg.params[1] = wm_mouse_pos.y - popupwindow.wnd.position.ymin;
-				dispatchMessage(&windowlist[windowlisttail].wnd.msg_buf, &newmsg);
+				newmsg.params[0] =
+					wm_mouse_pos.x -
+					popupwindow.wnd.position.xmin;
+				newmsg.params[1] =
+					wm_mouse_pos.y -
+					popupwindow.wnd.position.ymin;
+				dispatchMessage(
+					&windowlist[windowlisttail].wnd.msg_buf,
+					&newmsg);
 			}
 		}
 
@@ -422,47 +438,56 @@ void wmHandleMessage(message *msg)
 	case M_MOUSE_LEFT_CLICK:
 	case M_MOUSE_RIGHT_CLICK:
 	case M_MOUSE_DBCLICK:
-		if (clickedOnPopup)
-		{
+		if (clickedOnPopup) {
 			clickedOnPopup = 0;
 			newmsg.msg_type = msg->msg_type;
-			newmsg.params[0] = wm_mouse_pos.x - popupwindow.wnd.position.xmin;
-			newmsg.params[1] = wm_mouse_pos.y - popupwindow.wnd.position.ymin;
+			newmsg.params[0] =
+				wm_mouse_pos.x - popupwindow.wnd.position.xmin;
+			newmsg.params[1] =
+				wm_mouse_pos.y - popupwindow.wnd.position.ymin;
 			dispatchMessage(&popupwindow.wnd.msg_buf, &newmsg);
-		}
-		else if (clickedOnContent)
-		{
+		} else if (clickedOnContent) {
 			clickedOnContent = 0;
-			//check if clicked on window dock
-			//because we have a simple dock, updating it is entirely in the kernel.
-			//if we want, we can let the desktop program handle it with the help of some new system calls related to the information of opened windows.
-			if (windowlisttail == desktopId && wm_mouse_pos.y >= SCREEN_HEIGHT - DOCK_HEIGHT && wm_mouse_pos.y <= SCREEN_HEIGHT)
-			{
+			// check if clicked on window dock
+			// because we have a simple dock, updating it is
+			// entirely in the kernel. if we want, we can let the
+			// desktop program handle it with the help of some new
+			// system calls related to the information of opened
+			// windows.
+			if (windowlisttail == desktopId &&
+			    wm_mouse_pos.y >= SCREEN_HEIGHT - DOCK_HEIGHT &&
+			    wm_mouse_pos.y <= SCREEN_HEIGHT) {
 				handleDesktopDockClick(wm_mouse_pos.x, msg);
-			}
-			else
-			{
+			} else {
 				newmsg.msg_type = msg->msg_type;
-				newmsg.params[0] = wm_mouse_pos.x - windowlist[windowlisttail].wnd.position.xmin;
-				newmsg.params[1] = wm_mouse_pos.y - windowlist[windowlisttail].wnd.position.ymin;
-				dispatchMessage(&windowlist[windowlisttail].wnd.msg_buf, &newmsg);
+				newmsg.params[0] = wm_mouse_pos.x -
+						   windowlist[windowlisttail]
+							   .wnd.position.xmin;
+				newmsg.params[1] = wm_mouse_pos.y -
+						   windowlist[windowlisttail]
+							   .wnd.position.ymin;
+				dispatchMessage(
+					&windowlist[windowlisttail].wnd.msg_buf,
+					&newmsg);
 			}
 		}
 	case M_MOUSE_UP:
-		if (clickedOnPopup)
-		{
+		if (clickedOnPopup) {
 			clickedOnPopup = 0;
 		}
-		if (clickedOnContent)
-		{
+		if (clickedOnContent) {
 			clickedOnContent = 0;
 			newmsg.msg_type = msg->msg_type;
-			newmsg.params[0] = wm_mouse_pos.x - windowlist[windowlisttail].wnd.position.xmin;
-			newmsg.params[1] = wm_mouse_pos.y - windowlist[windowlisttail].wnd.position.ymin;
-			dispatchMessage(&windowlist[windowlisttail].wnd.msg_buf, &newmsg);
+			newmsg.params[0] =
+				wm_mouse_pos.x -
+				windowlist[windowlisttail].wnd.position.xmin;
+			newmsg.params[1] =
+				wm_mouse_pos.y -
+				windowlist[windowlisttail].wnd.position.ymin;
+			dispatchMessage(&windowlist[windowlisttail].wnd.msg_buf,
+					&newmsg);
 		}
-		if (clickedOnTitle)
-		{
+		if (clickedOnTitle) {
 			clickedOnTitle = 0;
 		}
 		mouseShape = 0;
@@ -484,8 +509,10 @@ void drawWindowBar(struct RGB *dst, kernel_window *win, struct RGBA barcolor)
 	int xmax = win->position.xmax + 1;
 	int ymin = win->position.ymin - TITLE_HEIGHT;
 	int ymax = win->position.ymin;
-	drawRectByCoord(dst, xmin, ymin, xmax - 2 * TITLE_HEIGHT, ymax, barcolor);
-	drawRectByCoord(dst, xmax - 2 * TITLE_HEIGHT, ymin, xmax - TITLE_HEIGHT, ymax, minimizeColor);
+	drawRectByCoord(dst, xmin, ymin, xmax - 2 * TITLE_HEIGHT, ymax,
+			barcolor);
+	drawRectByCoord(dst, xmax - 2 * TITLE_HEIGHT, ymin, xmax - TITLE_HEIGHT,
+			ymax, minimizeColor);
 	drawRectByCoord(dst, xmax - TITLE_HEIGHT, ymin, xmax, ymax, closeColor);
 	drawString(dst, xmin + 5, ymin + 3, win->title, iconColor);
 	drawIcon(dst, xmax - 2 * TITLE_HEIGHT - 1, ymin - 1, 1, iconColor);
@@ -497,18 +524,17 @@ void drawWindow(kernel_window *win)
 	int width = win->position.xmax - win->position.xmin;
 	int height = win->position.ymax - win->position.ymin;
 
-	//directly flush the RGB array of window onto screen_buf
-	draw24ImagePart(screen_buf, win->window_buf, win->position.xmin, win->position.ymin,
-					width, height, 0, 0, width, height);
+	// directly flush the RGB array of window onto screen_buf
+	draw24ImagePart(screen_buf, win->window_buf, win->position.xmin,
+			win->position.ymin, width, height, 0, 0, width, height);
 	RGB color;
 	color.R = 0;
 	color.G = 0;
 	color.B = 0;
-	drawRectBorder(screen_buf, color, win->position.xmin, win->position.ymin,
-				   width, height);
+	drawRectBorder(screen_buf, color, win->position.xmin,
+		       win->position.ymin, width, height);
 
-	if (win->hasTitleBar)
-	{
+	if (win->hasTitleBar) {
 		drawWindowBar(screen_buf, win, titleBarColor);
 	}
 }
@@ -516,101 +542,107 @@ void drawWindow(kernel_window *win)
 void drawDesktopDock(struct RGB *dst)
 {
 
-	drawRectByCoord(dst, 0, SCREEN_HEIGHT - DOCK_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, dockColor);
+	drawRectByCoord(dst, 0, SCREEN_HEIGHT - DOCK_HEIGHT, SCREEN_WIDTH,
+			SCREEN_HEIGHT, dockColor);
 
 	int p;
 	int windowCount = getWindowCount();
-	drawRectByCoord(dst, 0, SCREEN_HEIGHT - DOCK_HEIGHT, START_ICON_WIDTH, SCREEN_HEIGHT, titleBarColor);
-	if (windowCount > 0)
-	{
+	drawRectByCoord(dst, 0, SCREEN_HEIGHT - DOCK_HEIGHT, START_ICON_WIDTH,
+			SCREEN_HEIGHT, titleBarColor);
+	if (windowCount > 0) {
 		int xStart = START_ICON_WIDTH + 5;
-		int barWidth = min((SCREEN_WIDTH - START_ICON_WIDTH - SHOW_DESKTOP_ICON_WIDTH) / (windowCount + 1), DOCK_PROGRAM_NORMAL_WIDTH);
-		for (p = windowlisthead; p != -1; p = windowlist[p].next)
-		{
-			if (p != desktopId)
-			{
-				drawStringWithMaxWidth(dst, xStart + 5, SCREEN_HEIGHT - DOCK_HEIGHT * 0.7, barWidth - 2, windowlist[p].wnd.title, txtColor);
-				drawRectByCoord(dst, xStart + barWidth - 2, SCREEN_HEIGHT - DOCK_HEIGHT, xStart + barWidth, SCREEN_HEIGHT, txtColor);
+		int barWidth = min((SCREEN_WIDTH - START_ICON_WIDTH -
+				    SHOW_DESKTOP_ICON_WIDTH) /
+					   (windowCount + 1),
+				   DOCK_PROGRAM_NORMAL_WIDTH);
+		for (p = windowlisthead; p != -1; p = windowlist[p].next) {
+			if (p != desktopId) {
+				drawStringWithMaxWidth(
+					dst, xStart + 5,
+					SCREEN_HEIGHT - DOCK_HEIGHT * 0.7,
+					barWidth - 2, windowlist[p].wnd.title,
+					txtColor);
+				drawRectByCoord(dst, xStart + barWidth - 2,
+						SCREEN_HEIGHT - DOCK_HEIGHT,
+						xStart + barWidth,
+						SCREEN_HEIGHT, txtColor);
 				xStart += barWidth;
 			}
 		}
 	}
-	drawRectByCoord(dst, SCREEN_WIDTH - SHOW_DESKTOP_ICON_WIDTH, SCREEN_HEIGHT - DOCK_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT, titleBarColor);
-	drawIcon(dst, START_ICON_WIDTH / 2 - 15, SCREEN_HEIGHT - DOCK_HEIGHT + 3, 2, iconColor);
+	drawRectByCoord(dst, SCREEN_WIDTH - SHOW_DESKTOP_ICON_WIDTH,
+			SCREEN_HEIGHT - DOCK_HEIGHT, SCREEN_WIDTH,
+			SCREEN_HEIGHT, titleBarColor);
+	drawIcon(dst, START_ICON_WIDTH / 2 - 15,
+		 SCREEN_HEIGHT - DOCK_HEIGHT + 3, 2, iconColor);
 }
 
-//the only place that actually updates the screen
+// the only place that actually updates the screen
 void updateScreen()
 {
 
-
 	acquire(&wmlock);
-	if(myproc()!=windowlist[desktopId].proc) {
+	if (myproc() != windowlist[desktopId].proc) {
 		panic("Update screen called by non desktop process");
 		release(&wmlock);
 		return;
 	}
 
 	memset(screen_buf, 255, screen_size);
-	//draw desktop first
+	// draw desktop first
 	drawWindow(&windowlist[desktopId].wnd);
 	drawDesktopDock(screen_buf);
 
-	//draw other windows in order
-	//switch uvm to allow access to the RGB array of those windows
+	// draw other windows in order
+	// switch uvm to allow access to the RGB array of those windows
 	int p;
-	for (p = windowlisthead; p != -1; p = windowlist[p].next)
-	{
-		if (p != desktopId && windowlist[p].wnd.minimized == 0)
-		{
+	for (p = windowlisthead; p != -1; p = windowlist[p].next) {
+		if (p != desktopId && windowlist[p].wnd.minimized == 0) {
 			switchuvm(windowlist[p].proc);
 			drawWindow(&windowlist[p].wnd);
 		}
 	}
 
-	//draw popup window if there is one
-	if (popupwindow.caller != -1)
-	{
+	// draw popup window if there is one
+	if (popupwindow.caller != -1) {
 		switchuvm(popupwindow.proc);
 		drawWindow(&popupwindow.wnd);
 	}
 
-	//switch back to the desktop process (because it is the only process that calls this function)
+	// switch back to the desktop process (because it is the only process
+	// that calls this function)
 	if (myproc() == 0)
 		switchkvm();
 	else
 		switchuvm(myproc());
 
-	//draw the mouse
+	// draw the mouse
 	drawMouse(screen_buf, mouseShape, wm_mouse_pos.x, wm_mouse_pos.y);
 	memmove(screen, screen_buf, screen_size);
 
 	release(&wmlock);
 }
 
-//return window handler on succuss, -1 if unsuccessful
+// return window handler on succuss, -1 if unsuccessful
 int createWindow(window_p window, char *title)
 {
 
 	acquire(&wmlock);
 
 	int winId = findNextAvailableWindowId();
-	if (winId == -1)
-	{
+	if (winId == -1) {
 		release(&wmlock);
 		return 1;
 	}
 
-	if (windowlisthead == -1)
-	{
+	if (windowlisthead == -1) {
 		windowlisthead = winId;
 	}
 
 	addToWindowList(winId);
 
-	//the first window is always the desktop
-	if (desktopId == -1)
-	{
+	// the first window is always the desktop
+	if (desktopId == -1) {
 		desktopId = winId;
 	}
 
@@ -619,16 +651,17 @@ int createWindow(window_p window, char *title)
 	int ymin = window->initialPosition.ymin;
 	int ymax = window->initialPosition.ymax;
 
-	if (xmin >= 0 && xmax <= SCREEN_WIDTH &&
-		ymin >= 0 && ymax <= SCREEN_HEIGHT &&
-		xmax - xmin == window->width &&
-		ymax - ymin == window->height)
-	{
-		createRectByCoord(&windowlist[winId].wnd.position, xmin, ymin, xmax, ymax);
-	}
-	else
-	{
-		createRectByCoord(&windowlist[winId].wnd.position, SCREEN_WIDTH / 2 - window->width / 2, SCREEN_HEIGHT / 2 - window->height / 2, SCREEN_WIDTH / 2 + window->width / 2, SCREEN_HEIGHT / 2 + window->height / 2);
+	if (xmin >= 0 && xmax <= SCREEN_WIDTH && ymin >= 0 &&
+	    ymax <= SCREEN_HEIGHT && xmax - xmin == window->width &&
+	    ymax - ymin == window->height) {
+		createRectByCoord(&windowlist[winId].wnd.position, xmin, ymin,
+				  xmax, ymax);
+	} else {
+		createRectByCoord(&windowlist[winId].wnd.position,
+				  SCREEN_WIDTH / 2 - window->width / 2,
+				  SCREEN_HEIGHT / 2 - window->height / 2,
+				  SCREEN_WIDTH / 2 + window->width / 2,
+				  SCREEN_HEIGHT / 2 + window->height / 2);
 	}
 
 	windowlist[winId].wnd.window_buf = window->window_buf;
@@ -640,8 +673,7 @@ int createWindow(window_p window, char *title)
 	initMessageQueue(&windowlist[winId].wnd.msg_buf);
 
 	uint len = strlen(title);
-	if (len >= MAX_TITLE_LEN)
-	{
+	if (len >= MAX_TITLE_LEN) {
 		len = MAX_TITLE_LEN;
 	}
 	memmove(windowlist[winId].wnd.title, title, len);
@@ -656,8 +688,7 @@ int createPopupWindow(window_p window, int caller)
 
 	acquire(&wmlock);
 
-	if (popupwindow.caller != -1)
-	{
+	if (popupwindow.caller != -1) {
 		release(&wmlock);
 		return 1;
 	}
@@ -667,12 +698,11 @@ int createPopupWindow(window_p window, int caller)
 	int ymin = window->initialPosition.ymin;
 	int ymax = window->initialPosition.ymax;
 
-	if (xmin >= 0 && xmax <= SCREEN_WIDTH &&
-		ymin >= 0 && ymax <= SCREEN_HEIGHT &&
-		xmax - xmin == window->width &&
-		ymax - ymin == window->height)
-	{
-		createRectByCoord(&popupwindow.wnd.position, xmin, ymin, xmax, ymax);
+	if (xmin >= 0 && xmax <= SCREEN_WIDTH && ymin >= 0 &&
+	    ymax <= SCREEN_HEIGHT && xmax - xmin == window->width &&
+	    ymax - ymin == window->height) {
+		createRectByCoord(&popupwindow.wnd.position, xmin, ymin, xmax,
+				  ymax);
 	}
 
 	popupwindow.wnd.window_buf = window->window_buf;
@@ -715,8 +745,7 @@ int closeWindow(window_p window)
 	initMessageQueue(&windowlist[winId].wnd.msg_buf);
 	memset(windowlist[winId].wnd.title, 0, MAX_TITLE_LEN);
 
-	if (winId == windowlisttail)
-	{
+	if (winId == windowlisttail) {
 		focusWindow(windowlist[winId].prev);
 	}
 
@@ -735,8 +764,7 @@ int minimizeWindow(window_p window)
 	int winId = window->handler;
 
 	windowlist[winId].wnd.minimized = 1;
-	if (winId == windowlisttail)
-	{
+	if (winId == windowlisttail) {
 		focusWindow(windowlist[winId].prev);
 	}
 
@@ -760,13 +788,12 @@ int maximizeWindow(window_p window)
 	return 0;
 }
 
-//doesn't seem to work...
+// doesn't seem to work...
 int turnoffScreen()
 {
 	acquire(&wmlock);
 
-	for (int p = windowlisthead; p != -1; p = windowlist[p].next)
-	{
+	for (int p = windowlisthead; p != -1; p = windowlist[p].next) {
 		message newmsg;
 		newmsg.msg_type = WM_WINDOW_CLOSE;
 		dispatchMessage(&windowlist[p].wnd.msg_buf, &newmsg);
@@ -779,7 +806,7 @@ int turnoffScreen()
 	return 0;
 }
 
-//system calls 
+// system calls
 int sys_GUI_createPopupWindow()
 {
 	window *wnd;
@@ -832,8 +859,7 @@ int sys_GUI_getMessage()
 	message *res;
 	argint(0, &h);
 	argptr(1, (char **)(&res), sizeof(message));
-	if (myproc() != windowlist[h].proc)
-	{
+	if (myproc() != windowlist[h].proc) {
 		return 1;
 	}
 	return getMessage(&windowlist[h].wnd.msg_buf, res);
@@ -843,8 +869,7 @@ int sys_GUI_getPopupMessage()
 {
 	message *res;
 	argptr(0, (char **)(&res), sizeof(message));
-	if (popupwindow.caller == -1)
-	{
+	if (popupwindow.caller == -1) {
 		return 1;
 	}
 	return getMessage(&popupwindow.wnd.msg_buf, res);

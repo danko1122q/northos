@@ -14,14 +14,14 @@ struct RGB;
 struct RGBA;
 struct message;
 
-//window_manager.c
+// window_manager.c
 void wmInit(void);
 void wmHandleMessage(struct message *);
 
-//msg.c
+// msg.c
 int handleMessage(struct message *);
 
-//gui.c
+// gui.c
 extern int screen_size;
 extern ushort SCREEN_WIDTH;
 extern ushort SCREEN_HEIGHT;
@@ -39,10 +39,12 @@ void clearRect(struct RGB *, struct RGB *, int, int, int, int);
 void drawRectByCoord(struct RGB *, int, int, int, int, struct RGBA);
 void clearRectByCoord(struct RGB *, struct RGB *, int, int, int, int);
 void draw24Image(struct RGB *, struct RGB *, int, int, int, int, int, int);
-void draw24ImagePart(struct RGB *, struct RGB *, int, int, int, int, int, int, int, int);
+void draw24ImagePart(struct RGB *, struct RGB *, int, int, int, int, int, int,
+		     int, int);
 void drawImage(struct RGB *, struct RGBA *, int, int, int, int, int, int);
 void drawRectBound(struct RGB *, int, int, int, int, struct RGBA, int, int);
-void drawRectBorder(struct RGB *buf, struct RGB color, int x, int y, int width, int height);
+void drawRectBorder(struct RGB *buf, struct RGB color, int x, int y, int width,
+		    int height);
 
 // bio.c
 void binit(void);
@@ -139,7 +141,7 @@ void pipeclose(struct pipe *, int);
 int piperead(struct pipe *, char *, int);
 int pipewrite(struct pipe *, char *, int);
 
-//PAGEBREAK: 16
+// PAGEBREAK: 16
 // proc.c
 int cpuid(void);
 void exit(void);
