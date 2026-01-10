@@ -1,32 +1,36 @@
-# Initial process execs /init.
-# This code runs in user space.
+# Function: start
+# Purpose: Entry point for the very first user-space process.
+# This code executes an 'exec' system call to launch the /init binary.
 
 #include "syscall.h"
 #include "traps.h"
 
-
-# exec(init, argv)
 .globl start
 start:
-  pushl $argv
-  pushl $init
-  pushl $0  // where caller pc would be
-  movl $SYS_exec, %eax
-  int $T_SYSCALL
+  # Prepare arguments for the exec(init, argv) system call
+  pushl $argv           # Push pointer to the argument array
+  pushl $init           # Push pointer to the executable path string
+  pushl $0              # Dummy return address to satisfy C calling convention
+  
+  # Invoke the exec system call
+  movl $SYS_exec, %eax  # Load exec system call number
+  int $T_SYSCALL        # Trigger software interrupt to enter kernel mode
 
-# for(;;) exit();
+# Function: exit
+# Purpose: Fallback loop that calls exit if exec fails for any reason.
 exit:
-  movl $SYS_exit, %eax
-  int $T_SYSCALL
-  jmp exit
+  movl $SYS_exit, %eax  # Load exit system call number
+  int $T_SYSCALL        # Trigger software interrupt
+  jmp exit              # Ensure the process never continues past this point
 
-# char init[] = "/init\0";
+# Data: init
+# Purpose: The null-terminated path of the initial program to execute.
 init:
   .string "/init\0"
 
-# char *argv[] = { init, 0 };
+# Data: argv
+# Purpose: Argument array for exec, containing the program name and a null terminator.
 .p2align 2
 argv:
   .long init
   .long 0
-

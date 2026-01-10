@@ -100,7 +100,7 @@ QEMUOPTS = -drive file=$(B)/fs.img,index=1,media=disk,format=raw \
            -drive file=$(B)/xv6.img,index=0,media=disk,format=raw \
            -smp 2 -m 512
 
-qemu: all
+run: all
 	qemu-system-i386 -serial mon:stdio $(QEMUOPTS)
 
 clean:

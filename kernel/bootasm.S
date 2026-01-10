@@ -3,102 +3,96 @@
 #include "mmu.h"
 #include "gui.h"
 
-# Start the first CPU: switch to 32-bit protected mode, jump into C.
-# The BIOS loads this code from the first sector of the hard disk into
-# memory at physical address 0x7c00 and starts executing in real mode
-# with %cs=0 %ip=7c00.
+# bootstrap sequence
+# Transitions the system from BIOS real mode to 32-bit protected mode.
+# Execution begins at physical address 0x7c00.
 
-.code16                       # Assemble for 16-bit mode
+.code16
 .globl start
 start:
-  cli                         # BIOS enabled interrupts; disable
+  cli                         # Disable interrupts
 
 setupsvga:
-  movb    $0x4f,%ah
-  movb    $0x01,%al
-  movw    $0x4115,%cx
-  movw    $0x1000,%di
-  int     $0x10
+  # Initialize VESA BIOS Extensions (VBE)
+  movb    $0x4f,%ah           # VBE function prefix
+  movb    $0x01,%al           # Get VBE mode information
+  movw    $0x4115,%cx         # Resolution mode (800x600 24-bit)
+  movw    $0x1000,%di         # Information buffer offset
+  int     $0x10               # BIOS video interrupt
 
   movw    $GUI_BUF,%bx
   movw    %bx, %es
 
+  # Set VBE Video Mode
   movb    $0x4f,%ah
   movb    $0x02,%al
-  movw    $0x4115,%bx
+  movw    $0x4115,%bx         # Mode 0x115 with Linear Frame Buffer flag
   int     $0x10
 
-  # Zero data segment registers DS, ES, and SS.
-  xorw    %ax,%ax             # Set %ax to zero
-  movw    %ax,%ds             # -> Data Segment
-  movw    %ax,%es             # -> Extra Segment
-  movw    %ax,%ss             # -> Stack Segment
+  # Reset data segment registers
+  xorw    %ax,%ax
+  movw    %ax,%ds
+  movw    %ax,%es
+  movw    %ax,%ss
 
-  # Physical address line A20 is tied to zero so that the first PCs
-  # with 2 MB would run software that assumed 1 MB.  Undo that.
 seta20.1:
-  inb     $0x64,%al               # Wait for not busy
+  # Enable A20 gate to access memory above 1MB
+  inb     $0x64,%al
   testb   $0x2,%al
   jnz     seta20.1
 
-  movb    $0xd1,%al               # 0xd1 -> port 0x64
+  movb    $0xd1,%al
   outb    %al,$0x64
 
 seta20.2:
-  inb     $0x64,%al               # Wait for not busy
+  inb     $0x64,%al
   testb   $0x2,%al
   jnz     seta20.2
 
-  movb    $0xdf,%al               # 0xdf -> port 0x60
+  movb    $0xdf,%al
   outb    %al,$0x60
 
-
-  # Switch from real to protected mode.  Use a bootstrap GDT that makes
-  # virtual addresses map directly to physical addresses so that the
-  # effective memory map doesn't change during the transition.
+  # Transition to Protected Mode
+  # Load the Global Descriptor Table (GDT)
   lgdt    gdtdesc
   movl    %cr0, %eax
-  orl     $CR0_PE, %eax
+  orl     $CR0_PE, %eax       # Set Protected Mode Enable bit
   movl    %eax, %cr0
 
-//PAGEBREAK!
-  # Complete transition to 32-bit protected mode by using long jmp
-  # to reload %cs and %eip.  The segment descriptors are set up with no
-  # translation, so that the mapping is still the identity mapping.
+  # Perform a long jump to reload segment registers and enter 32-bit mode
   ljmp    $(SEG_KCODE<<3), $start32
 
-.code32  # Tell assembler to generate 32-bit code now.
+.code32
 start32:
-  # Set up the protected-mode data segment registers
-  movw    $(SEG_KDATA<<3), %ax    # Our data segment selector
-  movw    %ax, %ds                # -> DS: Data Segment
-  movw    %ax, %es                # -> ES: Extra Segment
-  movw    %ax, %ss                # -> SS: Stack Segment
-  movw    $0, %ax                 # Zero segments not ready for use
-  movw    %ax, %fs                # -> FS
-  movw    %ax, %gs                # -> GS
+  # Initialize 32-bit data segment registers
+  movw    $(SEG_KDATA<<3), %ax
+  movw    %ax, %ds
+  movw    %ax, %es
+  movw    %ax, %ss
+  movw    $0, %ax
+  movw    %ax, %fs
+  movw    %ax, %gs
 
-  # Set up the stack pointer and call into C.
+  # Initialize stack pointer and hand over to C bootmain
   movl    $start, %esp
   call    bootmain
 
-  # If bootmain returns (it shouldn't), trigger a Bochs
-  # breakpoint if running under Bochs, then loop.
-  movw    $0x8a00, %ax            # 0x8a00 -> port 0x8a00
+  # Trap execution if bootmain returns
+  movw    $0x8a00, %ax
   movw    %ax, %dx
   outw    %ax, %dx
-  movw    $0x8ae0, %ax            # 0x8ae0 -> port 0x8a00
+  movw    $0x8ae0, %ax
   outw    %ax, %dx
 spin:
   jmp     spin
 
-# Bootstrap GDT
-.p2align 2                                # force 4 byte alignment
+# Global Descriptor Table (GDT) Configuration
+.p2align 2
 gdt:
-  SEG_NULLASM                             # null seg
-  SEG_ASM(STA_X|STA_R, 0x0, 0xffffffff)   # code seg
-  SEG_ASM(STA_W, 0x0, 0xffffffff)         # data seg
+  SEG_NULLASM                             # Null segment
+  SEG_ASM(STA_X|STA_R, 0x0, 0xffffffff)   # Kernel Code Segment
+  SEG_ASM(STA_W, 0x0, 0xffffffff)         # Kernel Data Segment
 
 gdtdesc:
-  .word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1
-  .long   gdt                             # address gdt
+  .word   (gdtdesc - gdt - 1)             # GDT limit
+  .long   gdt                             # GDT base address
