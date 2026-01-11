@@ -4,6 +4,10 @@ U = user
 B = build
 I = include
 S = scripts
+IMG = img
+
+# --- TARGET NAME ---
+OS_NAME = xv6OS
 
 # --- OBJECTS ---
 OBJS_NAMES = bio.o console.o exec.o file.o fs.o ide.o ioapic.o kalloc.o \
@@ -20,24 +24,27 @@ LD = ld
 OBJCOPY = objcopy
 OBJDUMP = objdump
 
-# Flags untuk xv6 (32-bit, nostdinc)
+# Flags (32-bit, nostdinc)
 CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror \
          -fno-omit-frame-pointer -fno-stack-protector -fno-pie -no-pie -nostdinc -I$(I)
 LDFLAGS = -m elf_i386
 
-# --- TARGETS ---
-all: build_dir $(B)/xv6.img $(B)/fs.img
+# --- MAIN TARGETS ---
+all: setup $(IMG)/$(OS_NAME).img $(IMG)/fs.img
 
-build_dir:
+setup:
 	@mkdir -p $(B)
+	@mkdir -p $(IMG)
 
-$(B)/xv6.img: $(B)/bootblock $(B)/kernel
-	dd if=/dev/zero of=$(B)/xv6.img count=10000
-	dd if=$(B)/bootblock of=$(B)/xv6.img conv=notrunc
-	dd if=$(B)/kernel of=$(B)/xv6.img seek=1 conv=notrunc
+# --- IMAGE DISK ---
+$(IMG)/$(OS_NAME).img: $(B)/bootblock $(B)/kernel
+	@echo "Creating OS Image: $@"
+	@dd if=/dev/zero of=$(IMG)/$(OS_NAME).img count=10000 status=none
+	@dd if=$(B)/bootblock of=$(IMG)/$(OS_NAME).img conv=notrunc status=none
+	@dd if=$(B)/kernel of=$(IMG)/$(OS_NAME).img seek=1 conv=notrunc status=none
 
 # --- BOOTBLOCK ---
-$(B)/bootblock: $(K)/bootasm.S $(K)/bootmain.c $(S)/sign.pl | build_dir
+$(B)/bootblock: $(K)/bootasm.S $(K)/bootmain.c $(S)/sign.pl
 	$(CC) $(CFLAGS) -fno-pic -O -c $(K)/bootmain.c -o $(B)/bootmain.o
 	$(CC) $(CFLAGS) -fno-pic -c $(K)/bootasm.S -o $(B)/bootasm.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o $(B)/bootblock.o $(B)/bootasm.o $(B)/bootmain.o
@@ -45,65 +52,67 @@ $(B)/bootblock: $(K)/bootasm.S $(K)/bootmain.c $(S)/sign.pl | build_dir
 	perl $(S)/sign.pl $(B)/bootblock
 
 # --- KERNEL ---
-$(B)/kernel: $(OBJS) $(B)/entry.o $(B)/entryother $(B)/initcode $(B)/vectors.o $(K)/kernel.ld | build_dir
+$(B)/kernel: $(OBJS) $(B)/entry.o $(B)/entryother $(B)/initcode $(B)/vectors.o $(K)/kernel.ld
+	@echo "Linking Kernel..."
 	cd $(B) && $(LD) $(LDFLAGS) -T ../$(K)/kernel.ld -o kernel ../$(B)/entry.o ../$(B)/vectors.o $(OBJS_NAMES) -b binary initcode entryother
 	$(OBJDUMP) -S $(B)/kernel > $(B)/kernel.asm
 	$(OBJDUMP) -t $(B)/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(B)/kernel.sym
 
-# --- RULES ---
-$(B)/%.o: $(K)/%.c | build_dir
+# --- COMPILATION RULES ---
+$(B)/%.o: $(K)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(B)/%.o: $(K)/%.S | build_dir
+$(B)/%.o: $(K)/%.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(B)/vectors.o: $(S)/vectors.pl | build_dir
+$(B)/vectors.o: $(S)/vectors.pl
 	perl $(S)/vectors.pl > $(B)/vectors.S
 	$(CC) $(CFLAGS) -c $(B)/vectors.S -o $(B)/vectors.o
 
-$(B)/initcode: $(K)/initcode.S | build_dir
+$(B)/initcode: $(K)/initcode.S
 	$(CC) $(CFLAGS) -c $< -o $(B)/initcode.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $(B)/initcode.out $(B)/initcode.o
 	$(OBJCOPY) -S -O binary $(B)/initcode.out $(B)/initcode
 
-$(B)/entryother: $(K)/entryother.S | build_dir
+$(B)/entryother: $(K)/entryother.S
 	$(CC) $(CFLAGS) -fno-pic -c $< -o $(B)/entryother.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o $(B)/bootblockother.o $(B)/entryother.o
 	$(OBJCOPY) -S -O binary -j .text $(B)/bootblockother.o $(B)/entryother
 
-# --- USER ---
+# --- USER LAND ---
 ULIB = $(addprefix $(B)/, ulib.o usys.o printf.o umalloc.o user_gui.o user_window.o user_handler.o)
 
-$(B)/_%: $(B)/%.o $(ULIB) | build_dir
+$(B)/_%: $(B)/%.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 
-$(B)/%.o: $(U)/%.c | build_dir
+$(B)/%.o: $(U)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(B)/usys.o: $(U)/usys.S | build_dir
+$(B)/usys.o: $(U)/usys.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# --- FS ---
+# --- FILE SYSTEM ---
 UPROGS = \
 	$(B)/_init $(B)/_ls $(B)/_sh $(B)/_mkdir $(B)/_zombie \
 	$(B)/_desktop $(B)/_startWindow $(B)/_editor $(B)/_explorer \
 	$(B)/_shell $(B)/_demo
 
-$(B)/fs.img: $(B)/mkfs readme.txt $(UPROGS) | build_dir
-	$(B)/mkfs $(B)/fs.img readme.txt $(UPROGS)
+$(IMG)/fs.img: $(B)/mkfs readme.txt $(UPROGS)
+	@echo "Building File System Image..."
+	$(B)/mkfs $(IMG)/fs.img readme.txt $(UPROGS)
 
-# KUNCI PERBAIKAN:
-$(B)/mkfs: $(K)/mkfs.c | build_dir
+$(B)/mkfs: $(K)/mkfs.c
 	gcc -Werror -Wall -o $(B)/mkfs $(K)/mkfs.c
+
 # --- QEMU ---
-QEMUOPTS = -drive file=$(B)/fs.img,index=1,media=disk,format=raw \
-           -drive file=$(B)/xv6.img,index=0,media=disk,format=raw \
+QEMUOPTS = -drive file=$(IMG)/fs.img,index=1,media=disk,format=raw \
+           -drive file=$(IMG)/$(OS_NAME).img,index=0,media=disk,format=raw \
            -smp 2 -m 512
 
 run: all
 	qemu-system-i386 -serial mon:stdio $(QEMUOPTS)
 
 clean:
-	rm -rf $(B)
+	rm -rf $(B) $(IMG)
 
-.PHONY: all clean qemu build_dir
+.PHONY: all clean qemu setup run
