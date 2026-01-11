@@ -11,7 +11,7 @@
 
 window startWindow;
 
-char *GUI_programs[] = {"shell", "editor", "explorer", "demo"};
+char *GUI_programs[] = {"shell", "editor", "explorer", "floppybird"};
 
 // Handler untuk menjalankan program (Double Click)
 void startProgramHandler(Widget *widget, message *msg) {

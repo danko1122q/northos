@@ -95,12 +95,11 @@ $(B)/usys.o: $(U)/usys.S
 UPROGS = \
 	$(B)/_init $(B)/_ls $(B)/_sh $(B)/_mkdir $(B)/_zombie \
 	$(B)/_desktop $(B)/_startWindow $(B)/_editor $(B)/_explorer \
-	$(B)/_shell $(B)/_demo
+	$(B)/_shell $(B)/_floppybird
 
-$(IMG)/fs.img: $(B)/mkfs readme.txt $(UPROGS)
+$(IMG)/fs.img: $(B)/mkfs README.md LICENSE readme.txt $(UPROGS)
 	@echo "Building File System Image..."
-	$(B)/mkfs $(IMG)/fs.img readme.txt $(UPROGS)
-
+	$(B)/mkfs $(IMG)/fs.img README.md LICENSE readme.txt $(UPROGS)
 $(B)/mkfs: $(K)/mkfs.c
 	gcc -Werror -Wall -o $(B)/mkfs $(K)/mkfs.c
 

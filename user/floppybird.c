@@ -97,7 +97,7 @@ int main() {
 	programWindow.width = 540;
 	programWindow.height = 400;
 	programWindow.hasTitleBar = 1;
-	createWindow(&programWindow, "demo");
+	createWindow(&programWindow, "floppybird");
 
 	buttonColor.R = 244;
 	buttonColor.G = 180;
