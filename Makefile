@@ -6,7 +6,6 @@ I = include
 S = scripts
 IMG = img
 
-# --- TARGET NAME ---
 OS_NAME = xv6OS
 
 # --- OBJECTS ---
@@ -14,36 +13,36 @@ OBJS_NAMES = bio.o console.o exec.o file.o fs.o ide.o ioapic.o kalloc.o \
              kbd.o lapic.o log.o main.o mp.o picirq.o pipe.o proc.o \
              sleeplock.o spinlock.o string.o swtch.o syscall.o sysfile.o \
              sysproc.o trapasm.o trap.o uart.o vm.o gui.o mouse.o msg.o \
-             window_manager.o
+             window_manager.o icons_data.o
 
 OBJS = $(addprefix $(B)/, $(OBJS_NAMES))
 
-# --- TOOLS ---
 CC = gcc
 LD = ld
 OBJCOPY = objcopy
 OBJDUMP = objdump
 
-# Flags (32-bit, nostdinc)
 CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror \
          -fno-omit-frame-pointer -fno-stack-protector -fno-pie -no-pie -nostdinc -I$(I)
 LDFLAGS = -m elf_i386
 
 # --- MAIN TARGETS ---
-all: setup $(IMG)/$(OS_NAME).img $(IMG)/fs.img
+all: setup icons $(IMG)/$(OS_NAME).img $(IMG)/fs.img
 
 setup:
 	@mkdir -p $(B)
 	@mkdir -p $(IMG)
 
-# --- IMAGE DISK ---
+# OTOMATISASI: Menjalankan convert.py jika ada file .png di folder icon/ yang berubah
+icons: $(wildcard icon/*.png)
+	@echo "Otomatis mengonversi ikon PNG dari folder icon/..."
+	@python3 convert.py
+
 $(IMG)/$(OS_NAME).img: $(B)/bootblock $(B)/kernel
-	@echo "Creating OS Image: $@"
 	@dd if=/dev/zero of=$(IMG)/$(OS_NAME).img count=10000 status=none
 	@dd if=$(B)/bootblock of=$(IMG)/$(OS_NAME).img conv=notrunc status=none
 	@dd if=$(B)/kernel of=$(IMG)/$(OS_NAME).img seek=1 conv=notrunc status=none
 
-# --- BOOTBLOCK ---
 $(B)/bootblock: $(K)/bootasm.S $(K)/bootmain.c $(S)/sign.pl
 	$(CC) $(CFLAGS) -fno-pic -O -c $(K)/bootmain.c -o $(B)/bootmain.o
 	$(CC) $(CFLAGS) -fno-pic -c $(K)/bootasm.S -o $(B)/bootasm.o
@@ -51,14 +50,11 @@ $(B)/bootblock: $(K)/bootasm.S $(K)/bootmain.c $(S)/sign.pl
 	$(OBJCOPY) -S -O binary -j .text $(B)/bootblock.o $(B)/bootblock
 	perl $(S)/sign.pl $(B)/bootblock
 
-# --- KERNEL ---
 $(B)/kernel: $(OBJS) $(B)/entry.o $(B)/entryother $(B)/initcode $(B)/vectors.o $(K)/kernel.ld
-	@echo "Linking Kernel..."
 	cd $(B) && $(LD) $(LDFLAGS) -T ../$(K)/kernel.ld -o kernel ../$(B)/entry.o ../$(B)/vectors.o $(OBJS_NAMES) -b binary initcode entryother
 	$(OBJDUMP) -S $(B)/kernel > $(B)/kernel.asm
 	$(OBJDUMP) -t $(B)/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(B)/kernel.sym
 
-# --- COMPILATION RULES ---
 $(B)/%.o: $(K)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -80,7 +76,7 @@ $(B)/entryother: $(K)/entryother.S
 	$(OBJCOPY) -S -O binary -j .text $(B)/bootblockother.o $(B)/entryother
 
 # --- USER LAND ---
-ULIB = $(addprefix $(B)/, ulib.o usys.o printf.o umalloc.o user_gui.o user_window.o user_handler.o)
+ULIB = $(addprefix $(B)/, ulib.o usys.o printf.o umalloc.o user_gui.o user_window.o user_handler.o icons_data.o)
 
 $(B)/_%: $(B)/%.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
@@ -93,17 +89,25 @@ $(B)/usys.o: $(U)/usys.S
 
 # --- FILE SYSTEM ---
 UPROGS = \
-	$(B)/_init $(B)/_ls $(B)/_sh $(B)/_mkdir $(B)/_zombie \
-	$(B)/_desktop $(B)/_startWindow $(B)/_editor $(B)/_explorer \
-	$(B)/_shell $(B)/_floppybird
+	$(B)/_init \
+	$(B)/_ls \
+	$(B)/_sh \
+	$(B)/_mkdir \
+	$(B)/_echo \
+	$(B)/_zombie \
+	$(B)/_desktop \
+	$(B)/_startWindow \
+	$(B)/_editor \
+	$(B)/_explorer \
+	$(B)/_shell \
+	$(B)/_floppybird
 
 $(IMG)/fs.img: $(B)/mkfs README.md LICENSE readme.txt $(UPROGS)
-	@echo "Building File System Image..."
 	$(B)/mkfs $(IMG)/fs.img README.md LICENSE readme.txt $(UPROGS)
+
 $(B)/mkfs: $(K)/mkfs.c
 	gcc -Werror -Wall -o $(B)/mkfs $(K)/mkfs.c
 
-# --- QEMU ---
 QEMUOPTS = -drive file=$(IMG)/fs.img,index=1,media=disk,format=raw \
            -drive file=$(IMG)/$(OS_NAME).img,index=0,media=disk,format=raw \
            -smp 2 -m 512
@@ -114,4 +118,4 @@ run: all
 clean:
 	rm -rf $(B) $(IMG)
 
-.PHONY: all clean qemu setup run
+.PHONY: all clean qemu setup run icons

@@ -10,6 +10,7 @@
 #include "spinlock.h"
 #include "types.h"
 #include "x86.h"
+#include "icons.h"
 
 ushort SCREEN_WIDTH;
 ushort SCREEN_HEIGHT;
@@ -104,30 +105,42 @@ int drawCharacter(RGB *buf, int x, int y, char ch, RGBA color) {
 int drawIcon(RGB *buf, int x, int y, int icon, RGBA color) {
 	int i, j;
 	RGB *t;
-	if (icon < 0 || icon >= (ICON_NUMBER - 1)) {
+	
+	// Validasi ID icon
+	if (icon < 0 || icon >= ICON_NUMBER) {
 		return -1;
 	}
+
 	for (i = 0; i < ICON_SIZE; i++) {
-		if (y + i > SCREEN_HEIGHT) {
-			break;
-		}
-		if (y + i < 0) {
+		// Gunakan SCREEN_HEIGHT (batas global kernel)
+		if (y + i >= SCREEN_HEIGHT || y + i < 0) {
 			continue;
 		}
 		for (j = 0; j < ICON_SIZE; j++) {
-			if (icons[icon][i][j] == 1) {
-				if (x + j > SCREEN_WIDTH) {
-					break;
-				}
-				if (x + j < 0) {
-					continue;
-				}
-				t = buf + (y + i) * SCREEN_WIDTH + x + j;
-				drawPointAlpha(t, color);
+			// Gunakan SCREEN_WIDTH (batas global kernel)
+			if (x + j >= SCREEN_WIDTH || x + j < 0) {
+				continue;
+			}
+
+			// Ambil warna dari array icons_data
+			unsigned int raw_color = icons_data[icon][i * ICON_SIZE + j];
+
+			// Cek transparansi
+			if (raw_color != ICON_TRANSPARENT) {
+				// Gambar langsung ke buffer yang dikirim (buf)
+				t = buf + (y + i) * SCREEN_WIDTH + (x + j);
+				
+				RGBA pixel_color;
+				pixel_color.R = (raw_color >> 16) & 0xFF;
+				pixel_color.G = (raw_color >> 8) & 0xFF;
+				pixel_color.B = raw_color & 0xFF;
+				pixel_color.A = 255;
+
+				drawPointAlpha(t, pixel_color);
 			}
 		}
 	}
-	return CHARACTER_WIDTH;
+	return ICON_SIZE;
 }
 
 void drawString(RGB *buf, int x, int y, char *str, RGBA color) {

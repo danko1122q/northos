@@ -146,11 +146,13 @@ void inputFieldKeyHandler(Widget *w, message *msg) {
 			       w->context.inputfield->current_pos,
 		       temp);
 	}
-	// handle arrow keys to change text cursor
-	if (newChar == KEY_LF && w->context.inputfield->current_pos > 0) {
+	// handle arrow keys to change text cursor (both main keyboard and numpad)
+	// Left arrow: KEY_LF or numpad 4
+	if ((newChar == KEY_LF || newChar == '4') && w->context.inputfield->current_pos > 0) {
 		w->context.inputfield->current_pos--;
 	}
-	if (newChar == KEY_RT &&
+	// Right arrow: KEY_RT or numpad 6
+	if ((newChar == KEY_RT || newChar == '6') &&
 	    w->context.inputfield->current_pos < charCount) {
 		w->context.inputfield->current_pos++;
 	}
@@ -161,13 +163,15 @@ void inputFieldKeyHandler(Widget *w, message *msg) {
 	int current_pos_mouse_Y =
 		getMouseYFromOffset(w->context.inputfield->text, width,
 				    w->context.inputfield->current_pos);
-	if (newChar == KEY_UP) {
+	// Up arrow: KEY_UP or numpad 8
+	if (newChar == KEY_UP || newChar == '8') {
 		w->context.inputfield->current_pos =
 			getInputOffsetFromMousePosition(
 				w->context.inputfield->text, width,
 				current_pos_mouse_X, current_pos_mouse_Y - 1);
 	}
-	if (newChar == KEY_DN) {
+	// Down arrow: KEY_DN or numpad 2
+	if (newChar == KEY_DN || newChar == '2') {
 		w->context.inputfield->current_pos =
 			getInputOffsetFromMousePosition(
 				w->context.inputfield->text, width,
