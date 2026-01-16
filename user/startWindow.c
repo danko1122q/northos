@@ -31,7 +31,7 @@ typedef struct {
 } ProgramItem;
 
 ProgramItem programs[] = {
-    {"shell", "Terminal", 0},
+    {"terminal", "Terminal", 0},
     {"editor", "Text Editor", 0},
     {"explorer", "File Explorer", 0},
     {"floppybird", "Flappy Bird", 0}
@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
     renderContent();
     
     printf(1, "Start Menu ready!\n");
-    printf(1, "Programs: shell, editor, explorer, floppybird\n");
+    printf(1, "Programs: terminal, editor, explorer, floppybird\n");
     if (maxScrollOffset > 0) {
         printf(1, "Use arrows/PgUp/PgDn/Home/End to scroll\n");
     }

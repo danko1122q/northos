@@ -1,4 +1,4 @@
-// Create a zombie process that
+// Create a proc_demo process that
 // must be reparented at exit.
 
 #include "stat.h"

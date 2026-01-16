@@ -38,7 +38,7 @@ struct RGBA selectedColor;
 int toolbarHeight = 95;
 int itemStartY = 100;
 
-char *GUI_programs[] = {"shell", "editor", "explorer", "floppybird"};
+char *GUI_programs[] = {"terminal", "editor", "explorer", "floppybird"};
 
 void gui_ls(char *path);
 void refreshView();
@@ -65,7 +65,7 @@ char *getFileExtension(char *filename) {
 
 // Check if file is openable
 int isOpenable(char *filename) {
-	char *allowed[] = {"shell", "editor", "explorer", "floppybird"};
+	char *allowed[] = {"terminal", "editor", "explorer", "floppybird"};
 	for (int i = 0; i < 4; i++) {
 		if (strcmp(filename, allowed[i]) == 0)
 			return 1;
@@ -76,7 +76,7 @@ int isOpenable(char *filename) {
 // Check if file should be shown in explorer
 int shouldShowFile(char *filename) {
 	// List of GUI applications that should be shown
-	char *guiApps[] = {"shell", "editor", "explorer", "floppybird"};
+	char *guiApps[] = {"terminal", "editor", "explorer", "floppybird"};
 	for (int i = 0; i < 4; i++) {
 		if (strcmp(filename, guiApps[i]) == 0)
 			return 1;
@@ -136,7 +136,7 @@ int isProtected(char *name) {
 	}
 	
 	// List of protected files/folders
-	char *protected[] = {"editor", "explorer", "shell", "floppybird", ".", "..", 
+	char *protected[] = {"editor", "explorer", "terminal", "floppybird", ".", "..", 
 			     "kernel", "initcode", "init", "cat", "echo", 
 			     "forktest", "grep", "kill", "ln", "ls", "mkdir",
 			     "rm", "sh", "stressfs", "usertests", "wc", "zombie"};

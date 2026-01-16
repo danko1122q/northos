@@ -9,10 +9,10 @@ OS_NAME = xv6OS
 
 # --- OBJECTS ---
 OBJS_NAMES = bio.o console.o exec.o file.o fs.o ide.o ioapic.o kalloc.o \
-             kbd.o lapic.o log.o main.o mp.o picirq.o pipe.o proc.o \
-             sleeplock.o spinlock.o string.o swtch.o syscall.o sysfile.o \
-             sysproc.o trapasm.o trap.o uart.o vm.o gui.o mouse.o msg.o \
-             window_manager.o icons_data.o
+	     kbd.o lapic.o log.o main.o mp.o picirq.o pipe.o proc.o \
+	     sleeplock.o spinlock.o string.o swtch.o syscall.o sysfile.o \
+	     sysproc.o trapasm.o trap.o uart.o vm.o gui.o mouse.o msg.o \
+	     window_manager.o icons_data.o
 
 OBJS = $(addprefix $(B)/, $(OBJS_NAMES))
 
@@ -22,7 +22,8 @@ OBJCOPY = objcopy
 OBJDUMP = objdump
 
 CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror \
-         -fno-omit-frame-pointer -fno-stack-protector -fno-pie -no-pie -nostdinc -I$(I)
+	 -fno-omit-frame-pointer -fno-stack-protector -fno-pie -no-pie -nostdinc -I$(I) \
+	 -Wno-array-bounds -Wno-infinite-recursion
 
 LDFLAGS = -m elf_i386
 
@@ -100,12 +101,12 @@ UPROGS = \
 	$(B)/_sh \
 	$(B)/_mkdir \
 	$(B)/_echo \
-	$(B)/_zombie \
+	$(B)/_proc_demo \
 	$(B)/_desktop \
 	$(B)/_startWindow \
 	$(B)/_editor \
 	$(B)/_explorer \
-	$(B)/_shell \
+	$(B)/_terminal \
 	$(B)/_floppybird
 
 $(IMG)/fs.img: $(B)/mkfs README.md LICENSE readme.txt $(UPROGS)
@@ -115,8 +116,8 @@ $(B)/mkfs: $(K)/mkfs.c
 	gcc -Werror -Wall -o $(B)/mkfs $(K)/mkfs.c
 
 QEMUOPTS = -drive file=$(IMG)/fs.img,index=1,media=disk,format=raw \
-           -drive file=$(IMG)/$(OS_NAME).img,index=0,media=disk,format=raw \
-           -smp 2 -m 512
+	   -drive file=$(IMG)/$(OS_NAME).img,index=0,media=disk,format=raw \
+	   -smp 2 -m 512
 
 # Run QEMU without rebuilding
 run:

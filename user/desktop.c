@@ -16,7 +16,7 @@ struct RGBA desktopColor;
 struct RGBA buttonColor;
 struct RGBA textColor;
 
-char *GUI_programs[] = {"shell", "editor", "explorer", "floppybird"};
+char *GUI_programs[] = {"terminal", "editor", "explorer", "floppybird"};
 
 void startProgramHandler(Widget *widget, message *msg) {
 	if (msg->msg_type == M_MOUSE_DBCLICK) {

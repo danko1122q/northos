@@ -57,10 +57,10 @@ void ls(char *path) {
 			memmove(p, de.name, DIRSIZ);
 			p[DIRSIZ] = 0;
 			if (stat(buf, &st) < 0) {
-				printf(1, "ls: cannot stat %s\n", buf);
+				
 				continue;
 			}
-			printf(1, "%s %d %d %d\n", fmtname(buf), st.type,
+			if(st.type == T_DIR || strcmp(de.name, "explorer") == 0 || strcmp(de.name, "floppybird") == 0 || strcmp(de.name, "editor") == 0 || strcmp(de.name, "terminal") == 0 || strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0) printf(1, "%s %d %d %d\n", fmtname(buf), st.type,
 			       st.ino, st.size);
 		}
 		break;

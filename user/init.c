@@ -26,10 +26,10 @@ int main(void) {
 		}
 		if (pid == 0) {
 			exec("desktop", argv);
-			printf(1, "init: exec sh failed\n");
+			printf(1, "init: exec desktop failed\n");
 			exit();
 		}
-		while ((wpid = wait()) >= 0 && wpid != pid)
-			printf(1, "zombie!\n");
+		while ((wpid = wait()) >= 0 && wpid != pid);
+			
 	}
 }
