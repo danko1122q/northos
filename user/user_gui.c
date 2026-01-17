@@ -272,38 +272,44 @@ void draw24FillRect(window *win, RGB color, int x, int y, int width,
 }
 
 // user_gui.c
-void drawIcon(window *win, int icon, RGBA color, int x, int y, int width, int height) {
-    int i, j;
-    RGB *t;
-    unsigned int p;
+void drawIcon(window *win, int icon, RGBA color, int x, int y, int width,
+	      int height) {
+	int i, j;
+	RGB *t;
+	unsigned int p;
 
-    if (icon < 0 || icon >= ICON_NUMBER)
-        return;
+	if (icon < 0 || icon >= ICON_NUMBER)
+		return;
 
-    for (i = 0; i < ICON_SIZE; i++) {
-        if (y + i >= win->height || y + i < 0) break;
+	for (i = 0; i < ICON_SIZE; i++) {
+		if (y + i >= win->height || y + i < 0)
+			break;
 
-        for (j = 0; j < ICON_SIZE; j++) {
-            if (x + j >= win->width || x + j < 0) break;
+		for (j = 0; j < ICON_SIZE; j++) {
+			if (x + j >= win->width || x + j < 0)
+				break;
 
-            p = icons_data[icon][i * ICON_SIZE + j];
+			p = icons_data[icon][i * ICON_SIZE + j];
 
-            // JIKA pixel bernilai 0 (hitam murni di area transparan), kita lompati (skip)
-            // Ini akan membuat warna biru di bawahnya tetap terlihat
-            if (p == 0) {
-                continue;
-            }
+			// JIKA pixel bernilai 0 (hitam murni di area
+			// transparan), kita lompati (skip) Ini akan membuat
+			// warna biru di bawahnya tetap terlihat
+			if (p == 0) {
+				continue;
+			}
 
-            t = win->window_buf + (y + i) * win->width + (x + j);
+			t = win->window_buf + (y + i) * win->width + (x + j);
 
-            // Gunakan drawPointAlpha agar pixel menyatu dengan background
-            RGBA pixel_color;
-            pixel_color.R = (p >> 16) & 0xFF;
-            pixel_color.G = (p >> 8) & 0xFF;
-            pixel_color.B = p & 0xFF;
-            pixel_color.A = 255; // Kita anggap bagian yang tidak 0 adalah solid
+			// Gunakan drawPointAlpha agar pixel menyatu dengan
+			// background
+			RGBA pixel_color;
+			pixel_color.R = (p >> 16) & 0xFF;
+			pixel_color.G = (p >> 8) & 0xFF;
+			pixel_color.B = p & 0xFF;
+			pixel_color.A = 255; // Kita anggap bagian yang tidak 0
+					     // adalah solid
 
-            drawPointAlpha(t, pixel_color);
-        }
-    }
+			drawPointAlpha(t, pixel_color);
+		}
+	}
 }
