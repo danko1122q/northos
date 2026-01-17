@@ -15,18 +15,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Langkah Linter: Hanya mengecek file .c
       - name: Install Clang-Format
         run: sudo apt-get install -y clang-format
 
-      - name: Run Clang-Format Check
+      - name: Run Clang-Format Style Check
         run: |
-          # Hanya mengecek file .c di folder kernel dan user
-          # File .h diabaikan sesuai permintaan Anda
-          # 'grep -v' digunakan untuk mengabaikan file data besar agar build tidak gagal
+          # Only check .c files in kernel and user directories
+          # Exclude icons_data.c as it contains large data arrays
           find kernel user -name "*.c" | grep -v "icons_data.c" | xargs clang-format --dry-run --Werror
-        # --dry-run: hanya cek tanpa mengubah file
-        # --Werror: buat build gagal jika format tidak sesuai
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -54,13 +50,13 @@ jobs:
       - name: Build OS Images
         run: make all
 
-      - name: Check Artifacts
+      - name: Verify Build Artifacts
         run: |
           if [ -f "img/xv6OS.img" ] && [ -f "img/fs.img" ]; then
-            echo "Build Success: Images found."
+            echo "Build successful: All images generated."
             ls -lh img/
           else
-            echo "Build Failed: Images not found."
+            echo "Build failed: Image files not found."
             exit 1
           fi
 
