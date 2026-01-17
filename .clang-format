@@ -11,8 +11,9 @@ AlignAfterOpenBracket: Align
 PointerAlignment: Right
 SpaceAfterCStyleCast: false
 SpaceBeforeParens: ControlStatements
-# Mengizinkan format satu baris untuk struct/blok kecil agar tidak terlalu cerewet
+# Mengizinkan format singkat agar tidak error di window_manager.c
 AllowShortBlocksOnASingleLine: true
 AllowShortFunctionsOnASingleLine: All
-# Menangani spasi sebelum komentar
+SpacesInContainerLiterals: true
+# Memastikan spasi komentar konsisten
 SpacesBeforeTrailingComments: 1
