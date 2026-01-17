@@ -1,7 +1,8 @@
 build/
 *.img
 fs.img
-xv6.img
+xv6OS.img
+icons_data.c
 *.o
 *.d
 *.asm
@@ -16,4 +17,5 @@ entryother
 *~
 .vscode/
 .idea/
+
 mkfs
