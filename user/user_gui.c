@@ -143,7 +143,6 @@ void drawImage(window *win, RGBA *img, int x, int y, int width, int height) {
 }
 
 void draw24Image(window *win, RGB *img, int x, int y, int width, int height) {
-
 	int i;
 	RGB *t;
 	RGB *o;
@@ -209,7 +208,6 @@ void drawRect(window *win, RGB color, int x, int y, int width, int height) {
 
 void drawFillRect(window *win, RGBA color, int x, int y, int width,
 		  int height) {
-
 	int screen_width = win->width;
 	int screen_height = win->height;
 
@@ -248,7 +246,6 @@ void drawFillRect(window *win, RGBA color, int x, int y, int width,
 
 void draw24FillRect(window *win, RGB color, int x, int y, int width,
 		    int height) {
-
 	if (x >= win->width || x + width < 0 || y >= win->height ||
 	    y + height < 0 || x < 0 || y < 0 || width < 0 || height < 0) {
 		return;

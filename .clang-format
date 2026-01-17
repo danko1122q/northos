@@ -11,6 +11,10 @@ AlignAfterOpenBracket: Align
 PointerAlignment: Right
 SpaceAfterCStyleCast: false
 SpaceBeforeParens: ControlStatements
+# Mengizinkan blok pendek dalam satu baris untuk struct/fungsi kecil
 AllowShortBlocksOnASingleLine: true
-# Tambahan untuk menangani komentar non-ASCII agar tidak error
+AllowShortFunctionsOnASingleLine: All
+# Menangani spasi sebelum komentar agar lebih rapi
 SpacesBeforeTrailingComments: 1
+# Memastikan file berakhir dengan baris baru (newline)
+KeepEmptyLinesAtTheStartOfBlocks: false

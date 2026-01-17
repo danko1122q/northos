@@ -120,7 +120,6 @@ int dispatchMessage(msg_buf *buf, message *msg) {
 
 // return non-zero if buf is empty
 int getMessage(msg_buf *buf, message *result) {
-
 	if (buf->cnt == 0)
 		return 1;
 	acquire(&wmlock);
@@ -192,7 +191,6 @@ void wmInit() {
 }
 
 void debugPrintWindowList() {
-
 	cprintf("############################\n");
 	cprintf("current Proc at %d\n", myproc());
 	cprintf("current Head at %d\n", windowlisthead);
@@ -201,7 +199,6 @@ void debugPrintWindowList() {
 
 	int p;
 	for (p = windowlisthead; p != -1; p = windowlist[p].next) {
-
 		cprintf("current Window at %d\n", p);
 		cprintf("current Window proc %d\n", windowlist[p].proc);
 		cprintf("prev Window at %d\n", windowlist[p].prev);
@@ -538,7 +535,6 @@ void drawWindow(kernel_window *win) {
 }
 
 void drawDesktopDock(struct RGB *dst) {
-
 	drawRectByCoord(dst, 0, SCREEN_HEIGHT - DOCK_HEIGHT, SCREEN_WIDTH,
 			SCREEN_HEIGHT, dockColor);
 
@@ -587,7 +583,6 @@ void drawDesktopDock(struct RGB *dst) {
 
 // the only place that actually updates the screen
 void updateScreen() {
-
 	acquire(&wmlock);
 	if (myproc() != windowlist[desktopId].proc) {
 		panic("Update screen called by non desktop process");
@@ -630,7 +625,6 @@ void updateScreen() {
 
 // return window handler on succuss, -1 if unsuccessful
 int createWindow(window_p window, char *title) {
-
 	acquire(&wmlock);
 
 	int winId = findNextAvailableWindowId();
@@ -688,7 +682,6 @@ int createWindow(window_p window, char *title) {
 }
 
 int createPopupWindow(window_p window, int caller) {
-
 	acquire(&wmlock);
 
 	if (popupwindow.caller != -1) {
@@ -721,7 +714,6 @@ int createPopupWindow(window_p window, int caller) {
 }
 
 int closePopupWindow(window_p window) {
-
 	acquire(&wmlock);
 
 	popupwindow.caller = -1;
@@ -735,7 +727,6 @@ int closePopupWindow(window_p window) {
 }
 
 int closeWindow(window_p window) {
-
 	acquire(&wmlock);
 
 	int winId = window->handler;
@@ -758,7 +749,6 @@ int closeWindow(window_p window) {
 }
 
 int minimizeWindow(window_p window) {
-
 	acquire(&wmlock);
 
 	int winId = window->handler;
@@ -774,7 +764,6 @@ int minimizeWindow(window_p window) {
 }
 
 int maximizeWindow(window_p window) {
-
 	acquire(&wmlock);
 
 	int winId = window->handler;

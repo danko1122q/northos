@@ -47,9 +47,9 @@ void mouseinit(void) {
 	uchar statustemp;
 
 	mouse_wait(1);
-	outb(0x64, 0xa8); 
+	outb(0x64, 0xa8);
 
-	mouse_wait(1); 
+	mouse_wait(1);
 	outb(0x64, 0x20);
 	mouse_wait(0);
 	statustemp = (inb(0x60) | 2);
@@ -58,7 +58,7 @@ void mouseinit(void) {
 	mouse_wait(1);
 	outb(0x60, statustemp);
 
-	mouse_write(0xf6); 
+	mouse_write(0xf6);
 	mouse_read();
 
 	mouse_write(0xf3);
