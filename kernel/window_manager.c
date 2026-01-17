@@ -162,7 +162,7 @@ void wmInit() {
 	titleTextColor.G = 255;
 	titleTextColor.B = 255;
 	titleTextColor.A = 255;
-	
+
 	// Minimize button - gray
 	minimizeColor.R = 100;
 	minimizeColor.G = 108;
@@ -496,20 +496,21 @@ void drawWindowBar(struct RGB *dst, kernel_window *win, struct RGBA barcolor) {
 	int xmax = win->position.xmax + 1;
 	int ymin = win->position.ymin - TITLE_HEIGHT;
 	int ymax = win->position.ymin;
-	
+
 	// Draw title bar background
-	drawRectByCoord(dst, xmin, ymin, xmax - 2 * TITLE_HEIGHT, ymax, barcolor);
-	
+	drawRectByCoord(dst, xmin, ymin, xmax - 2 * TITLE_HEIGHT, ymax,
+			barcolor);
+
 	// Minimize button
 	drawRectByCoord(dst, xmax - 2 * TITLE_HEIGHT, ymin, xmax - TITLE_HEIGHT,
 			ymax, minimizeColor);
-	
+
 	// Close button
 	drawRectByCoord(dst, xmax - TITLE_HEIGHT, ymin, xmax, ymax, closeColor);
-	
+
 	// Title text - white
 	drawString(dst, xmin + 8, ymin + 6, win->title, titleTextColor);
-	
+
 	// Icons - white
 	drawIcon(dst, xmax - 2 * TITLE_HEIGHT - 1, ymin - 1, 1, iconColor);
 	drawIcon(dst, xmax - TITLE_HEIGHT - 1, ymin - 1, 0, iconColor);
@@ -522,7 +523,7 @@ void drawWindow(kernel_window *win) {
 	// directly flush the RGB array of window onto screen_buf
 	draw24ImagePart(screen_buf, win->window_buf, win->position.xmin,
 			win->position.ymin, width, height, 0, 0, width, height);
-	
+
 	// Window border - subtle gray
 	RGB borderColor;
 	borderColor.R = 60;
@@ -543,17 +544,17 @@ void drawDesktopDock(struct RGB *dst) {
 
 	int p;
 	int windowCount = getWindowCount();
-	
+
 	// Start button - accent color
 	struct RGBA startBtnColor;
 	startBtnColor.R = 66;
 	startBtnColor.G = 135;
 	startBtnColor.B = 245;
 	startBtnColor.A = 255;
-	
+
 	drawRectByCoord(dst, 0, SCREEN_HEIGHT - DOCK_HEIGHT, START_ICON_WIDTH,
 			SCREEN_HEIGHT, startBtnColor);
-	
+
 	if (windowCount > 0) {
 		int xStart = START_ICON_WIDTH + 5;
 		int barWidth = min((SCREEN_WIDTH - START_ICON_WIDTH -
@@ -575,7 +576,7 @@ void drawDesktopDock(struct RGB *dst) {
 			}
 		}
 	}
-	
+
 	// Show desktop button
 	drawRectByCoord(dst, SCREEN_WIDTH - SHOW_DESKTOP_ICON_WIDTH,
 			SCREEN_HEIGHT - DOCK_HEIGHT, SCREEN_WIDTH,

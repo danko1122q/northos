@@ -29,7 +29,7 @@ int main(void) {
 			printf(1, "init: exec desktop failed\n");
 			exit();
 		}
-		while ((wpid = wait()) >= 0 && wpid != pid);
-			
+		while ((wpid = wait()) >= 0 && wpid != pid)
+			;
 	}
 }

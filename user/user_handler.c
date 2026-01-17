@@ -146,9 +146,10 @@ void inputFieldKeyHandler(Widget *w, message *msg) {
 			       w->context.inputfield->current_pos,
 		       temp);
 	}
-	// handle arrow keys to change text cursor (both main keyboard and numpad)
-	// Left arrow: KEY_LF or numpad 4
-	if ((newChar == KEY_LF || newChar == '4') && w->context.inputfield->current_pos > 0) {
+	// handle arrow keys to change text cursor (both main keyboard and
+	// numpad) Left arrow: KEY_LF or numpad 4
+	if ((newChar == KEY_LF || newChar == '4') &&
+	    w->context.inputfield->current_pos > 0) {
 		w->context.inputfield->current_pos--;
 	}
 	// Right arrow: KEY_RT or numpad 6

@@ -105,7 +105,7 @@ int drawCharacter(RGB *buf, int x, int y, char ch, RGBA color) {
 int drawIcon(RGB *buf, int x, int y, int icon, RGBA color) {
 	int i, j;
 	RGB *t;
-	
+
 	// Validasi ID icon
 	if (icon < 0 || icon >= ICON_NUMBER) {
 		return -1;
@@ -123,13 +123,14 @@ int drawIcon(RGB *buf, int x, int y, int icon, RGBA color) {
 			}
 
 			// Ambil warna dari array icons_data
-			unsigned int raw_color = icons_data[icon][i * ICON_SIZE + j];
+			unsigned int raw_color =
+				icons_data[icon][i * ICON_SIZE + j];
 
 			// Cek transparansi
 			if (raw_color != ICON_TRANSPARENT) {
 				// Gambar langsung ke buffer yang dikirim (buf)
 				t = buf + (y + i) * SCREEN_WIDTH + (x + j);
-				
+
 				RGBA pixel_color;
 				pixel_color.R = (raw_color >> 16) & 0xFF;
 				pixel_color.G = (raw_color >> 8) & 0xFF;

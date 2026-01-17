@@ -275,35 +275,43 @@ void draw24FillRect(window *win, RGB color, int x, int y, int width,
 	}
 }
 
-void drawIcon(window *win, int icon, RGBA color, int x, int y, int width, int height) {
-    int i, j;
-    RGB *t;
-    unsigned int p;
+void drawIcon(window *win, int icon, RGBA color, int x, int y, int width,
+	      int height) {
+	int i, j;
+	RGB *t;
+	unsigned int p;
 
-    if (icon < 0 || icon >= ICON_NUMBER) return;
+	if (icon < 0 || icon >= ICON_NUMBER)
+		return;
 
-    for (i = 0; i < ICON_SIZE; i++) {
-        if (y + i >= win->height) break;
-        if (y + i < 0) continue;
+	for (i = 0; i < ICON_SIZE; i++) {
+		if (y + i >= win->height)
+			break;
+		if (y + i < 0)
+			continue;
 
-        for (j = 0; j < ICON_SIZE; j++) {
-            if (x + j >= win->width) break;
-            if (x + j < 0) continue;
+		for (j = 0; j < ICON_SIZE; j++) {
+			if (x + j >= win->width)
+				break;
+			if (x + j < 0)
+				continue;
 
-            p = icons_data[icon][i * ICON_SIZE + j];
+			p = icons_data[icon][i * ICON_SIZE + j];
 
-            // Cek bit Alpha (biasanya di 8 bit teratas atau terbawah tergantung script)
-            // Jika 0, berarti transparan, maka lewati (skip)
-            if (((p >> 24) & 0xFF) == 0) {
-                continue;
-            }
+			// Cek bit Alpha (biasanya di 8 bit teratas atau
+			// terbawah tergantung script) Jika 0, berarti
+			// transparan, maka lewati (skip)
+			if (((p >> 24) & 0xFF) == 0) {
+				continue;
+			}
 
-            t = win->window_buf + (y + i) * win->width + (x + j);
-            
-            // Konversi dari format 0xAARRGGBB atau 0xRRGGBBAA ke struct RGB
-            t->R = (p >> 16) & 0xFF;
-            t->G = (p >> 8) & 0xFF;
-            t->B = p & 0xFF;
-        }
-    }
+			t = win->window_buf + (y + i) * win->width + (x + j);
+
+			// Konversi dari format 0xAARRGGBB atau 0xRRGGBBAA ke
+			// struct RGB
+			t->R = (p >> 16) & 0xFF;
+			t->G = (p >> 8) & 0xFF;
+			t->B = p & 0xFF;
+		}
+	}
 }
