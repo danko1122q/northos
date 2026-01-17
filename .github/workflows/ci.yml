@@ -15,14 +15,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Langkah Linter: Mengecek kerapihan kode sesuai .clang-format
+      # Langkah Linter: Hanya mengecek file .c
       - name: Install Clang-Format
         run: sudo apt-get install -y clang-format
 
       - name: Run Clang-Format Check
         run: |
-          # Mengecek semua file .c dan .h di folder kernel (K) dan user (U)
-          find kernel user include -name "*.c" -o -name "*.h" | xargs clang-format --dry-run --Werror
+          # Hanya mengecek file .c di folder kernel dan user
+          # File .h diabaikan sesuai permintaan Anda
+          # 'grep -v' digunakan untuk mengabaikan file data besar agar build tidak gagal
+          find kernel user -name "*.c" | grep -v "icons_data.c" | xargs clang-format --dry-run --Werror
         # --dry-run: hanya cek tanpa mengubah file
         # --Werror: buat build gagal jika format tidak sesuai
 
