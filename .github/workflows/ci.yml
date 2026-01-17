@@ -45,9 +45,7 @@ jobs:
 
       - name: Generate Icon Data
         run: |
-          # Lokasi convert.py ada di root sesuai struktur tree kamu
           python3 convert.py
-          # Buat folder build dan img agar proses make tidak gagal
           mkdir -p build img
 
       - name: Clean Environment
