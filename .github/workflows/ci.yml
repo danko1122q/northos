@@ -45,10 +45,10 @@ jobs:
 
       - name: Generate Icon Data
         run: |
-          # Jalankan script konversi untuk menghasilkan kernel/icons_data.c
-          python3 scripts/convert.py
-          # Pastikan folder build ada agar Makefile tidak error saat mencoba menulis .o
-          mkdir -p build
+          # Lokasi convert.py ada di root sesuai struktur tree kamu
+          python3 convert.py
+          # Buat folder build dan img agar proses make tidak gagal
+          mkdir -p build img
 
       - name: Clean Environment
         run: make clean
@@ -58,6 +58,7 @@ jobs:
 
       - name: Verify Build Artifacts
         run: |
+          # Pastikan path pengecekan sesuai dengan folder output di Makefile kamu
           if [ -f "img/xv6OS.img" ] && [ -f "img/fs.img" ]; then
             echo "Build successful: Images generated."
             ls -lh img/
