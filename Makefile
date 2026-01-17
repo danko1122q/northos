@@ -28,21 +28,14 @@ CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb 
 LDFLAGS = -m elf_i386
 
 # --- MAIN TARGETS ---
-# Default target: build everything
-make: all
-
-# Build and run
-makerun: all run
-
 all: setup icons $(IMG)/$(OS_NAME).img $(IMG)/fs.img
 
 setup:
 	@mkdir -p $(B)
 	@mkdir -p $(IMG)
 
-# AUTOMATION: Run convert.py if any .png files in icon/ folder have changed
 icons: $(wildcard icon/*.png)
-	@echo "Automatically converting PNG icons from icon/ folder..."
+	@echo "Automatically converting PNG icons..."
 	@python3 convert.py
 
 $(IMG)/$(OS_NAME).img: $(B)/bootblock $(B)/kernel
@@ -50,12 +43,13 @@ $(IMG)/$(OS_NAME).img: $(B)/bootblock $(B)/kernel
 	@dd if=$(B)/bootblock of=$(IMG)/$(OS_NAME).img conv=notrunc status=none
 	@dd if=$(B)/kernel of=$(IMG)/$(OS_NAME).img seek=1 conv=notrunc status=none
 
-$(B)/bootblock: $(K)/bootasm.S $(K)/bootmain.c $(S)/sign.pl
+$(B)/bootblock: $(K)/bootasm.S $(K)/bootmain.c $(S)/sign.go
 	$(CC) $(CFLAGS) -fno-pic -O -c $(K)/bootmain.c -o $(B)/bootmain.o
 	$(CC) $(CFLAGS) -fno-pic -c $(K)/bootasm.S -o $(B)/bootasm.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o $(B)/bootblock.o $(B)/bootasm.o $(B)/bootmain.o
 	$(OBJCOPY) -S -O binary -j .text $(B)/bootblock.o $(B)/bootblock
-	perl $(S)/sign.pl $(B)/bootblock
+	@echo "Signing bootblock with Go..."
+	go run $(S)/sign.go $(B)/bootblock
 
 $(B)/kernel: $(OBJS) $(B)/entry.o $(B)/entryother $(B)/initcode $(B)/vectors.o $(K)/kernel.ld
 	cd $(B) && $(LD) $(LDFLAGS) -T ../$(K)/kernel.ld -o kernel ../$(B)/entry.o ../$(B)/vectors.o $(OBJS_NAMES) -b binary initcode entryother
@@ -68,8 +62,9 @@ $(B)/%.o: $(K)/%.c
 $(B)/%.o: $(K)/%.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(B)/vectors.o: $(S)/vectors.pl
-	perl $(S)/vectors.pl > $(B)/vectors.S
+$(B)/vectors.o: $(S)/vectors.go
+	@echo "Generating vectors.S with Go..."
+	go run $(S)/vectors.go > $(B)/vectors.S
 	$(CC) $(CFLAGS) -c $(B)/vectors.S -o $(B)/vectors.o
 
 $(B)/initcode: $(K)/initcode.S
@@ -119,11 +114,12 @@ QEMUOPTS = -drive file=$(IMG)/fs.img,index=1,media=disk,format=raw \
 	   -drive file=$(IMG)/$(OS_NAME).img,index=0,media=disk,format=raw \
 	   -smp 2 -m 512
 
-# Run QEMU without rebuilding
 run:
 	@qemu-system-i386 -serial mon:stdio $(QEMUOPTS)
+
+makerun: all run
 
 clean:
 	rm -rf $(B) $(IMG)
 
-.PHONY: all clean qemu setup run icons make makerun
+.PHONY: all clean setup run icons makerun
