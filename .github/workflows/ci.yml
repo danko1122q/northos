@@ -15,6 +15,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Langkah Linter: Mengecek kerapihan kode sesuai .clang-format
+      - name: Install Clang-Format
+        run: sudo apt-get install -y clang-format
+
+      - name: Run Clang-Format Check
+        run: |
+          # Mengecek semua file .c dan .h di folder kernel (K) dan user (U)
+          find kernel user include -name "*.c" -o -name "*.h" | xargs clang-format --dry-run --Werror
+        # --dry-run: hanya cek tanpa mengubah file
+        # --Werror: buat build gagal jika format tidak sesuai
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -29,7 +40,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install Pillow
-          # Library ini dibutuhkan oleh convert.py untuk memproses ikon
 
       - name: Install System Dependencies
         run: |
