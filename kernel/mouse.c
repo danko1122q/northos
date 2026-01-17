@@ -47,9 +47,9 @@ void mouseinit(void) {
 	uchar statustemp;
 
 	mouse_wait(1);
-	outb(0x64, 0xa8); //激活鼠标接口
+	outb(0x64, 0xa8); 
 
-	mouse_wait(1); //激活中断
+	mouse_wait(1); 
 	outb(0x64, 0x20);
 	mouse_wait(0);
 	statustemp = (inb(0x60) | 2);
@@ -58,10 +58,10 @@ void mouseinit(void) {
 	mouse_wait(1);
 	outb(0x60, statustemp);
 
-	mouse_write(0xf6); //设置鼠标为默认设置
+	mouse_write(0xf6); 
 	mouse_read();
 
-	mouse_write(0xf3); //设置鼠标采样率
+	mouse_write(0xf3);
 	mouse_read();
 	mouse_write(10);
 	mouse_read();

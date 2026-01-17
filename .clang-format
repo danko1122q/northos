@@ -11,4 +11,6 @@ AlignAfterOpenBracket: Align
 PointerAlignment: Right
 SpaceAfterCStyleCast: false
 SpaceBeforeParens: ControlStatements
-AllowShortBlocksOnASingleLine: false
+AllowShortBlocksOnASingleLine: true
+# Tambahan untuk menangani komentar non-ASCII agar tidak error
+SpacesBeforeTrailingComments: 1
