@@ -128,7 +128,7 @@ clean:
 
 # --- FORMATTING ---
 format:
-	@echo "Formatting source code (.c files only)..."
+	@echo "Formatting source code"
 	@find $(K) $(U) -name "*.c" | grep -v "icons_data.c" | xargs clang-format -i
 	@echo "Formatting complete."
 
