@@ -12,7 +12,7 @@
 #define MENU_HEIGHT 420
 #define BUTTON_HEIGHT 45
 #define BUTTON_SPACING 5
-#define BUTTON_PADDING_X 15
+#define BUTTON_PADDING_X 10 // Kurangi padding jika tombol terasa penuh
 #define BUTTON_PADDING_Y 10
 #define SECTION_SPACING 15
 #define SCROLLBAR_WIDTH 8

@@ -1,9 +1,8 @@
+# Build and Images
 build/
 *.img
 fs.img
 xv6OS.img
-icons_data.c
-app_icons_data.c
 *.o
 *.d
 *.asm
@@ -13,16 +12,19 @@ initcode
 initcode.out
 bootblock
 entryother
+
+# Generated Font and Icons
+include/character.h
+include/character.c
+include/app_icons.h
+kernel/app_icons_data.c
+kernel/icons_data.c
+include/icons.h
+
+# Tools & OS leftovers
+mkfs
 .DS_Store
 .swp
 *~
 .vscode/
 .idea/
-
-mkfs
-
-# Generated icon files
-include/app_icons.h
-kernel/app_icons_data.c
-include/character.h
-include/character.c

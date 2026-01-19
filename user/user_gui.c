@@ -55,26 +55,43 @@ void fillRect(RGB *buf, int x, int y, int width, int height, int max_x,
 	}
 }
 
-int drawCharacter(window *win, int x, int y, char ch, RGBA color) {
+int drawCharacter(RGB *buf, int x, int y, char ch, RGBA color, int win_width,
+		  int win_height) {
 	int i, j;
 	RGB *t;
 	int ord = ch - 0x20;
-	if (ord < 0 || ord >= (CHARACTER_NUMBER - 1)) {
+
+	// Character validation
+	if (ord < 0 || ord >= (CHARACTER_NUMBER - 1))
 		return -1;
-	}
+
 	for (i = 0; i < CHARACTER_HEIGHT; i++) {
-		if (y + i >= win->height || y + i < 0)
+		// Clipping: Check if the character row is within the window
+		// height boundaries
+		if (y + i >= win_height || y + i < 0)
 			continue;
 
 		for (j = 0; j < CHARACTER_WIDTH; j++) {
-			// Jika bitmap bernilai 1, gambar pixel tersebut
-			if (character[ord][i][j] == 1) {
-				if (x + j >= win->width || x + j < 0)
-					continue;
+			// Clipping: Check if the character column is within the
+			// window width boundaries
+			if (x + j >= win_width || x + j < 0)
+				continue;
 
-				t = win->window_buf + (y + i) * win->width +
-				    (x + j);
-				drawPointAlpha(t, color);
+			uchar font_alpha = character[ord][i][j];
+
+			if (font_alpha > 0) {
+				// VITAL FIX: Use win_width as the multiplier
+				// instead of a hardcoded value (e.g., 800) to
+				// calculate the correct buffer index for
+				// different window sizes.
+				t = buf + (y + i) * win_width + (x + j);
+
+				RGBA smooth_color = color;
+				// Alpha blending for font smoothing
+				// (anti-aliasing)
+				smooth_color.A = (color.A * font_alpha) / 255;
+
+				drawPointAlpha(t, smooth_color);
 			}
 		}
 	}
@@ -87,21 +104,33 @@ void drawString(window *win, char *str, RGBA color, int x, int y, int width,
 	int offset_y = 0;
 
 	while (*str != '\0') {
-		if (offset_y > height)
+		// If text row exceeds the provided area height
+		if (offset_y + CHARACTER_HEIGHT > height)
 			break;
+
 		if (*str != '\n') {
-			if (x + offset_x >= 0 && x + offset_x <= win->width &&
-			    y + offset_y >= 0 && y + offset_y <= win->height) {
-				drawCharacter(win, x + offset_x, y + offset_y,
-					      *str, color);
+			// Check if the current character position is within the
+			// requested drawing area (width)
+			if (offset_x + CHARACTER_WIDTH <= width) {
+				// CALL FIXED:
+				// Added win->width and win->height arguments so
+				// drawCharacter can calculate the buffer index
+				// correctly and perform clipping.
+				drawCharacter(win->window_buf, x + offset_x,
+					      y + offset_y, *str, color,
+					      win->width, win->height);
 			}
 
 			offset_x += CHARACTER_WIDTH;
-			if (offset_x > width) {
+
+			// Auto-wrap: If text exceeds the 'width' area, move to
+			// a new line
+			if (offset_x + CHARACTER_WIDTH > width) {
 				offset_x = 0;
 				offset_y += CHARACTER_HEIGHT;
 			}
 		} else {
+			// Handle manual newline character
 			offset_x = 0;
 			offset_y += CHARACTER_HEIGHT;
 		}
