@@ -14,9 +14,10 @@
 #define LOGSIZE      (MAXOPBLOCKS * 3) // Max data blocks in on-disk log
 #define NBUF         (MAXOPBLOCKS * 3) // Size of disk block cache
 
-// File System Configuration for 500 MB Disk
-// Calculation: (500 * 1024 * 1024) / 2048 (BSIZE) = 256,000 blocks
-#define FSSIZE       256000    
+// File System Configuration for ~50 MB Disk
+// Calculation: (50 * 1024 * 1024) / 2048 (BSIZE) = 25,600 blocks
+// Actual size: 25,600 * 2048 = 52,428,800 bytes = ~50 MB
+#define FSSIZE       25600     // ~50 MB file system
 #define BSIZE        2048      // Block size in bytes
 
 #endif
