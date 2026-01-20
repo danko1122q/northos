@@ -6,6 +6,8 @@ Modified version of MIT xv6 (x86) with a custom graphical user interface and win
 ## Overview
 This project transforms the traditional xv6 teaching OS into a graphical environment. It features a monolithic kernel with multi-processor support, a VGA-based window manager, and a set of graphical user applications.
 
+[Feel free to open an issue or submit a pull request if you want to add more apps or improve the kernel logic.]
+
 ## Core Features
 *   **Monolithic Kernel**: Unix-inspired design with preemptive multitasking.
 *   **GUI Subsystem**: Kernel-level window manager and drawing primitives.
