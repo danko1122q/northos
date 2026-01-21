@@ -20,7 +20,6 @@ jobs:
 
       - name: Run Clang-Format Style Check
         run: |
-          # Hanya cek file .c, abaikan icons_data.c dan file .h
           find kernel user -name "*.c" | grep -v "icons_data.c" | xargs clang-format --dry-run --Werror || echo "Format check failed, but continuing..."
 
       - name: Set up Go
@@ -47,8 +46,6 @@ jobs:
       - name: Generate Font and Icon Data
         run: |
           python3 font.py
-          # Jika nama filenya convert_icons.py, gunakan itu. 
-          # Sesuaikan dengan nama file di repo Anda (tadi Anda menyebut convert.py dan convert_icons.py)
           if [ -f "convert_icons.py" ]; then python3 convert_icons.py; fi
           if [ -f "convert.py" ]; then python3 convert.py; fi
           mkdir -p build img
@@ -61,7 +58,7 @@ jobs:
 
       - name: Verify Build Artifacts
         run: |
-          if [ -f "img/xv6OS.img" ] && [ -f "img/fs.img" ]; then
+          if [ -f "img/Northos.img" ] && [ -f "img/fs.img" ]; then
             echo "Build successful: Images generated."
             ls -lh img/
           else
