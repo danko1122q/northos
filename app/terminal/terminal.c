@@ -9,7 +9,8 @@
 #include "user_handler.h"
 #include "user_window.h"
 
-char *GUI_programs[] = {"terminal", "editor", "explorer", "floppybird"};
+char *GUI_programs[] = {"terminal", "editor", "explorer", "floppybird",
+			"calculator"};
 
 // Pipe for shell communication
 int sh2gui_fd[2];
@@ -17,9 +18,12 @@ int sh2gui_fd[2];
 char read_buf[READBUFFERSIZE];
 
 window programWindow;
-int commandWidgetId;
+int inputWidgetId;  // Input field (fixed bottom)
+int promptWidgetId; // Prompt (fixed bottom)
 int totallines = 0;
 int inputOffset = 25;
+int promptWidth = 70;	   // Lebar area prompt "host$> "
+int bottomAreaHeight = 30; // Area untuk prompt + input di bottom
 
 // Modern color scheme
 struct RGBA bgColor;
@@ -75,6 +79,58 @@ struct backcmd {
 int fork1(void);
 void panic(char *);
 struct cmd *parsecmd(char *);
+void freecmd(struct cmd *);
+void safestrcpy(char *dst, const char *src, int n);
+void removeAllHistory(void);
+void clearTerminal(void);
+void addToHistory(char *text, struct RGBA color);
+void executeCommand(char *buffer);
+
+void safestrcpy(char *dst, const char *src, int n) {
+	int i;
+	for (i = 0; i < n - 1 && src[i]; i++)
+		dst[i] = src[i];
+	dst[i] = 0;
+}
+
+void freecmd(struct cmd *cmd) {
+	if (!cmd)
+		return;
+
+	switch (cmd->type) {
+	case EXEC:
+		free(cmd);
+		break;
+	case REDIR: {
+		struct redircmd *rcmd = (struct redircmd *)cmd;
+		freecmd(rcmd->cmd);
+		free(cmd);
+		break;
+	}
+	case PIPE: {
+		struct pipecmd *pcmd = (struct pipecmd *)cmd;
+		freecmd(pcmd->left);
+		freecmd(pcmd->right);
+		free(cmd);
+		break;
+	}
+	case LIST: {
+		struct listcmd *lcmd = (struct listcmd *)cmd;
+		freecmd(lcmd->left);
+		freecmd(lcmd->right);
+		free(cmd);
+		break;
+	}
+	case BACK: {
+		struct backcmd *bcmd = (struct backcmd *)cmd;
+		freecmd(bcmd->cmd);
+		free(cmd);
+		break;
+	}
+	default:
+		free(cmd);
+	}
+}
 
 // Execute command
 void runcmd(struct cmd *cmd) {
@@ -153,26 +209,152 @@ void runcmd(struct cmd *cmd) {
 
 // Check if command is a GUI program
 int isGUIProgram(char *cmd) {
-	if (strcmp(cmd, "terminal") == 0 || strcmp(cmd, "editor") == 0 ||
-	    strcmp(cmd, "explorer") == 0 || strcmp(cmd, "floppybird") == 0 ||
-	    strcmp(cmd, "calculator") == 0) {
-		return 1;
+	char cmdname[MAX_SHORT_STRLEN];
+	int i = 0;
+	while (cmd[i] && cmd[i] != ' ' && i < MAX_SHORT_STRLEN - 1) {
+		cmdname[i] = cmd[i];
+		i++;
+	}
+	cmdname[i] = '\0';
+
+	for (int j = 0; j < sizeof(GUI_programs) / sizeof(GUI_programs[0]);
+	     j++) {
+		if (strcmp(cmdname, GUI_programs[j]) == 0)
+			return 1;
 	}
 	return 0;
 }
 
-// Input handler with modern prompt
-void inputHandler(Widget *w, message *msg) {
-	int width;
-	int height;
-	int charCount;
+// Remove all history widgets (keep fixed widgets: bg, prompt, input)
+void removeAllHistory(void) {
+	int p = programWindow.widgetlisttail;
+	while (p != -1 && p > inputWidgetId) {
+		int prev = programWindow.widgets[p].prev;
+		removeWidget(&programWindow, p);
+		p = prev;
+	}
+}
 
+// Clear terminal screen
+void clearTerminal(void) {
+	removeAllHistory();
+	totallines = 0;
+	programWindow.scrollOffsetY = 0;
+	programWindow.needsRepaint = 1;
+}
+
+// Add text to history area (scrollable)
+void addToHistory(char *text, struct RGBA color) {
+	int width = programWindow.width - inputOffset * 2;
+	int textLen = strlen(text);
+	int lines = getMouseYFromOffset(text, width, textLen) + 1;
+	int height = lines * CHARACTER_HEIGHT;
+
+	// Y position: start from top with margin
+	int yPos = 30 + (totallines * CHARACTER_HEIGHT);
+
+	addTextWidget(&programWindow, color, text, inputOffset, yPos, width,
+		      height, 1, emptyHandler);
+
+	totallines += lines;
+
+	// Auto-scroll to show latest history
+	int totalContentHeight = 30 + (totallines * CHARACTER_HEIGHT);
+	int visibleHeight = programWindow.height - bottomAreaHeight - 30;
+	if (totalContentHeight > visibleHeight) {
+		programWindow.scrollOffsetY =
+			totalContentHeight - visibleHeight;
+	}
+}
+
+// Execute command and handle output
+void executeCommand(char *buffer) {
+	// Check for built-in commands first
+	if (strcmp(buffer, "clear") == 0) {
+		clearTerminal();
+		return;
+	}
+
+	int isGUI = isGUIProgram(buffer);
+	int pipe_fds[2] = {-1, -1};
+
+	if (!isGUI) {
+		if (pipe(pipe_fds) < 0) {
+			pipe_fds[0] = -1;
+			pipe_fds[1] = -1;
+		}
+	}
+
+	int pid = fork();
+	if (pid < 0) {
+		if (pipe_fds[0] >= 0) {
+			close(pipe_fds[0]);
+			close(pipe_fds[1]);
+		}
+	} else if (pid == 0) {
+		// Child
+		if (!isGUI && pipe_fds[1] >= 0) {
+			close(pipe_fds[0]);
+			close(1);
+			dup(pipe_fds[1]);
+			close(pipe_fds[1]);
+		}
+		struct cmd *cmd = parsecmd(buffer);
+		if (cmd) {
+			runcmd(cmd);
+			freecmd(cmd);
+		}
+		exit();
+	} else {
+		// Parent
+		memset(read_buf, 0, READBUFFERSIZE);
+
+		if (!isGUI && pipe_fds[0] >= 0) {
+			close(pipe_fds[1]);
+			int n, totalRead = 0;
+			char tempBuf[256];
+
+			while (totalRead < READBUFFERSIZE - 256) {
+				n = read(pipe_fds[0], tempBuf, 255);
+				if (n <= 0)
+					break;
+				tempBuf[n] = '\0';
+				if (totalRead + n < READBUFFERSIZE - 1) {
+					memmove(read_buf + totalRead, tempBuf,
+						n);
+					totalRead += n;
+					read_buf[totalRead] = '\0';
+				}
+			}
+			close(pipe_fds[0]);
+		}
+		wait();
+	}
+
+	// Add command to history (with prompt style)
+	char historyLine[MAX_LONG_STRLEN];
+	strcpy(historyLine, "host$> ");
+	int promptLen = strlen(historyLine);
+	int cmdLen = strlen(buffer);
+	if (promptLen + cmdLen < MAX_LONG_STRLEN - 1) {
+		strcpy(historyLine + promptLen, buffer);
+	}
+
+	addToHistory(historyLine, promptColor);
+
+	// Add output if exists
+	if (strlen(read_buf) > 0) {
+		addToHistory(read_buf, outputColor);
+	}
+}
+
+// Input handler
+void inputHandler(Widget *w, message *msg) {
 	if (!w || !w->context.inputfield)
 		return;
 
-	width = w->position.xmax - w->position.xmin;
-	height = w->position.ymax - w->position.ymin;
-	charCount = strlen(w->context.inputfield->text);
+	int width = w->position.xmax - w->position.xmin;
+	int charCount = strlen(w->context.inputfield->text);
 
 	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
 		inputMouseLeftClickHandler(w, msg);
@@ -180,178 +362,41 @@ void inputHandler(Widget *w, message *msg) {
 		int c = msg->params[0];
 		char buffer[MAX_LONG_STRLEN];
 
-		if (c == '\n' && charCount > 0) {
-			memset(read_buf, 0, READBUFFERSIZE);
-			memset(buffer, 0, MAX_LONG_STRLEN);
+		if (c == '\n') {
+			// Copy command
+			safestrcpy(buffer, w->context.inputfield->text,
+				   MAX_LONG_STRLEN);
 
-			// Get only the command text (skip the prompt part)
-			const char *promptText = "host@xv6os$ ";
-			int promptLen = strlen(promptText);
-			char *inputText = w->context.inputfield->text;
-
-			// Check if text starts with prompt (manual comparison)
-			int hasPrompt = 1;
-			int i;
-			for (i = 0; i < promptLen; i++) {
-				if (inputText[i] != promptText[i]) {
-					hasPrompt = 0;
-					break;
-				}
-			}
-
-			if (hasPrompt) {
-				strcpy(buffer, inputText + promptLen);
-			} else {
-				strcpy(buffer, inputText);
-			}
-
-			// Skip if command is empty
+			// Skip if empty
 			if (strlen(buffer) == 0) {
 				return;
 			}
 
-			// Check if it's a GUI program
-			int isGUI = isGUIProgram(buffer);
+			// Execute command
+			executeCommand(buffer);
 
-			if (!isGUI) {
-				// Create pipe for non-GUI programs
-				if (pipe(sh2gui_fd) != 0) {
-					printf(2, "pipe() failed\n");
-					// Continue without pipe
-					sh2gui_fd[0] = -1;
-					sh2gui_fd[1] = -1;
-				}
-			}
-
-			int pid = fork();
-			if (pid < 0) {
-				printf(2, "fork failed\n");
-				if (sh2gui_fd[0] >= 0) {
-					close(sh2gui_fd[0]);
-					close(sh2gui_fd[1]);
-				}
-			} else if (pid == 0) {
-				// Child process
-				if (!isGUI && sh2gui_fd[1] >= 0) {
-					close(sh2gui_fd[0]);
-					close(1);
-					dup(sh2gui_fd[1]);
-					close(sh2gui_fd[1]);
-				}
-				runcmd(parsecmd(buffer));
-				exit(); // Ensure child exits
-			} else {
-				// Parent process
-				if (!isGUI && sh2gui_fd[0] >= 0) {
-					close(sh2gui_fd[1]);
-
-					// Read output with timeout mechanism
-					int n;
-					int totalRead = 0;
-					char tempBuf[256];
-
-					// Read in chunks to avoid blocking
-					while (totalRead <
-					       READBUFFERSIZE - 256) {
-						n = read(sh2gui_fd[0], tempBuf,
-							 255);
-						if (n <= 0)
-							break;
-
-						tempBuf[n] = '\0';
-						if (totalRead + n <
-						    READBUFFERSIZE - 1) {
-							strcpy(read_buf +
-								       totalRead,
-							       tempBuf);
-							totalRead += n;
-						} else {
-							break;
-						}
-					}
-					read_buf[totalRead] = '\0';
-
-					close(sh2gui_fd[0]);
-				}
-
-				// Wait for child to finish
-				wait();
-			}
-
-			// Display command with prompt (separated)
-			int commandLineCount;
-
-			// Remove old input widget
-			removeWidget(&programWindow, commandWidgetId);
-
-			// Add prompt in green
-			addTextWidget(&programWindow, promptColor,
-				      "host@xv6os$ ", inputOffset,
-				      inputOffset +
-					      totallines * CHARACTER_HEIGHT,
-				      width - inputOffset * 2, CHARACTER_HEIGHT,
-				      1, emptyHandler);
-
-			// Add command text in white on same line
-			commandLineCount =
-				getMouseYFromOffset(buffer, width - 100,
-						    strlen(buffer)) +
-				1;
-			addTextWidget(&programWindow, textColor, buffer,
-				      inputOffset + 100,
-				      inputOffset +
-					      totallines * CHARACTER_HEIGHT,
-				      width - inputOffset * 2 - 100,
-				      commandLineCount * CHARACTER_HEIGHT, 1,
-				      emptyHandler);
-
-			totallines += commandLineCount;
-
-			// Add command output if exists
-			if (strlen(read_buf) > 0) {
-				int respondLineCount =
-					getMouseYFromOffset(read_buf, width,
-							    strlen(read_buf)) +
-					1;
-				addTextWidget(
-					&programWindow, outputColor, read_buf,
-					inputOffset,
-					inputOffset +
-						totallines * CHARACTER_HEIGHT,
-					width - inputOffset * 2,
-					respondLineCount * CHARACTER_HEIGHT, 1,
-					emptyHandler);
-				totallines += respondLineCount;
-			}
-
-			// Add new input field - PERBAIKAN: empty string untuk
-			// text field
-			commandWidgetId = addInputFieldWidget(
-				&programWindow, promptColor, "", inputOffset,
-				inputOffset + totallines * CHARACTER_HEIGHT,
-				width - inputOffset * 2, CHARACTER_HEIGHT, 1,
-				inputHandler);
-
-			// Auto-scroll to bottom
-			int maximumOffset =
-				getScrollableTotalHeight(&programWindow) -
-				programWindow.height;
-			if (maximumOffset > 0) {
-				programWindow.scrollOffsetY = maximumOffset;
-			}
+			// Clear input field
+			w->context.inputfield->text[0] = '\0';
+			w->context.inputfield->current_pos = 0;
 
 			programWindow.needsRepaint = 1;
-		} else {
-			inputFieldKeyHandler(w, msg);
 
-			// Grow input field height as needed
-			int newHeight =
-				CHARACTER_HEIGHT *
-				(getMouseYFromOffset(
-					 w->context.inputfield->text, width,
-					 strlen(w->context.inputfield->text)) +
-				 1);
-			if (newHeight > height) {
+		} else {
+			// Handle typing
+			if (charCount < MAX_LONG_STRLEN - 1) {
+				inputFieldKeyHandler(w, msg);
+			}
+
+			// Auto-grow height if multiline
+			int textLines =
+				getMouseYFromOffset(
+					w->context.inputfield->text, width,
+					strlen(w->context.inputfield->text)) +
+				1;
+			int newHeight = textLines * CHARACTER_HEIGHT;
+			int maxInputHeight = bottomAreaHeight - 5;
+			if (newHeight > CHARACTER_HEIGHT &&
+			    newHeight < maxInputHeight) {
 				w->position.ymax = w->position.ymin + newHeight;
 			}
 		}
@@ -359,8 +404,6 @@ void inputHandler(Widget *w, message *msg) {
 }
 
 int main(int argc, char *argv[]) {
-	int width;
-
 	(void)argc;
 	(void)argv;
 
@@ -370,54 +413,52 @@ int main(int argc, char *argv[]) {
 	programWindow.hasTitleBar = 1;
 	createWindow(&programWindow, "Terminal");
 
-	width = programWindow.width - inputOffset * 2;
+	int width = programWindow.width - inputOffset * 2;
 
-	// Modern dark theme colors
+	// Colors
 	bgColor.R = 30;
 	bgColor.G = 30;
 	bgColor.B = 30;
 	bgColor.A = 255;
-
 	promptColor.R = 76;
 	promptColor.G = 175;
 	promptColor.B = 80;
 	promptColor.A = 255;
-
 	textColor.R = 240;
 	textColor.G = 240;
 	textColor.B = 240;
 	textColor.A = 255;
-
 	outputColor.R = 200;
 	outputColor.G = 200;
 	outputColor.B = 200;
 	outputColor.A = 255;
 
-	// Background
+	// Background for history area (top, scrollable)
 	addColorFillWidget(&programWindow, bgColor, 0, 0, programWindow.width,
-			   programWindow.height, 0, emptyHandler);
+			   programWindow.height - bottomAreaHeight, 0,
+			   emptyHandler);
 
-	// Welcome message
-	char welcome[] = "xv6 Terminal v1.0\nCommands: ls, cat, mkdir, rm, "
-			 "echo, shell, editor, etc.\n";
-	int welcomeLines = 3;
-	addTextWidget(&programWindow, textColor, welcome, inputOffset,
-		      inputOffset, width, welcomeLines * CHARACTER_HEIGHT, 1,
-		      emptyHandler);
-	totallines = welcomeLines;
+	// Background for input area (bottom, fixed)
+	struct RGBA inputBgColor = bgColor;
+	inputBgColor.R = 40;
+	inputBgColor.G = 40;
+	inputBgColor.B = 40;
+	addColorFillWidget(&programWindow, inputBgColor, 0,
+			   programWindow.height - bottomAreaHeight,
+			   programWindow.width, bottomAreaHeight, 0,
+			   emptyHandler);
 
-	// PERBAIKAN: Tambah text widget untuk prompt static
-	addTextWidget(&programWindow, promptColor, "host@xv6os$ ", inputOffset,
-		      inputOffset + totallines * CHARACTER_HEIGHT, width,
-		      CHARACTER_HEIGHT, 1, emptyHandler);
+	// Create prompt widget (fixed bottom)
+	int bottomY = programWindow.height - bottomAreaHeight;
+	promptWidgetId = addTextWidget(&programWindow, promptColor, "host$>",
+				       inputOffset, bottomY + 5, promptWidth,
+				       CHARACTER_HEIGHT, 0, emptyHandler);
 
-	// Initial input field - PERBAIKAN: empty string, prompt ditampilkan
-	// oleh text widget di atas
-	commandWidgetId = addInputFieldWidget(
-		&programWindow, textColor, "",
-		inputOffset + 100, // offset untuk posisi setelah prompt
-		inputOffset + totallines * CHARACTER_HEIGHT, width - 100,
-		CHARACTER_HEIGHT, 1, inputHandler);
+	// Create input field (fixed bottom, next to prompt)
+	inputWidgetId = addInputFieldWidget(&programWindow, textColor, "",
+					    inputOffset + promptWidth,
+					    bottomY + 5, width - promptWidth,
+					    CHARACTER_HEIGHT, 0, inputHandler);
 
 	printf(1, "Terminal started\n");
 
@@ -445,6 +486,8 @@ int fork1(void) {
 struct cmd *execcmd(void) {
 	struct execcmd *cmd;
 	cmd = malloc(sizeof(*cmd));
+	if (!cmd)
+		panic("malloc failed");
 	memset(cmd, 0, sizeof(*cmd));
 	cmd->type = EXEC;
 	return (struct cmd *)cmd;
@@ -454,6 +497,8 @@ struct cmd *redircmd(struct cmd *subcmd, char *file, char *efile, int mode,
 		     int fd) {
 	struct redircmd *cmd;
 	cmd = malloc(sizeof(*cmd));
+	if (!cmd)
+		panic("malloc failed");
 	memset(cmd, 0, sizeof(*cmd));
 	cmd->type = REDIR;
 	cmd->cmd = subcmd;
@@ -467,6 +512,8 @@ struct cmd *redircmd(struct cmd *subcmd, char *file, char *efile, int mode,
 struct cmd *pipecmd(struct cmd *left, struct cmd *right) {
 	struct pipecmd *cmd;
 	cmd = malloc(sizeof(*cmd));
+	if (!cmd)
+		panic("malloc failed");
 	memset(cmd, 0, sizeof(*cmd));
 	cmd->type = PIPE;
 	cmd->left = left;
@@ -477,6 +524,8 @@ struct cmd *pipecmd(struct cmd *left, struct cmd *right) {
 struct cmd *listcmd(struct cmd *left, struct cmd *right) {
 	struct listcmd *cmd;
 	cmd = malloc(sizeof(*cmd));
+	if (!cmd)
+		panic("malloc failed");
 	memset(cmd, 0, sizeof(*cmd));
 	cmd->type = LIST;
 	cmd->left = left;
@@ -487,6 +536,8 @@ struct cmd *listcmd(struct cmd *left, struct cmd *right) {
 struct cmd *backcmd(struct cmd *subcmd) {
 	struct backcmd *cmd;
 	cmd = malloc(sizeof(*cmd));
+	if (!cmd)
+		panic("malloc failed");
 	memset(cmd, 0, sizeof(*cmd));
 	cmd->type = BACK;
 	cmd->cmd = subcmd;
@@ -558,6 +609,9 @@ struct cmd *nulterminate(struct cmd *);
 struct cmd *parsecmd(char *s) {
 	char *es;
 	struct cmd *cmd;
+
+	if (!s || strlen(s) == 0)
+		return 0;
 
 	es = s + strlen(s);
 	cmd = parseline(&s, es);

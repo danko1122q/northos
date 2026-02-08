@@ -8,7 +8,19 @@ S = scripts
 IMG = img
 OS_NAME = Northos
 
-# --- OBJECTS ---
+# --- TOOLS ---
+CC = gcc
+LD = ld
+OBJCOPY = objcopy
+OBJDUMP = objdump
+
+CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror \
+         -fno-omit-frame-pointer -fno-stack-protector -fno-pie -no-pie -nostdinc -I$(I) \
+         -Wno-array-bounds
+
+LDFLAGS = -m elf_i386
+
+# --- KERNEL OBJECTS ---
 OBJS_NAMES = bio.o character.o console.o exec.o file.o fs.o ide.o ioapic.o kalloc.o \
              kbd.o lapic.o log.o main.o mp.o picirq.o pipe.o proc.o \
              sleeplock.o spinlock.o string.o swtch.o syscall.o sysfile.o \
@@ -17,18 +29,10 @@ OBJS_NAMES = bio.o character.o console.o exec.o file.o fs.o ide.o ioapic.o kallo
 
 OBJS = $(addprefix $(B)/, $(OBJS_NAMES))
 
-CC = gcc
-LD = ld
-OBJCOPY = objcopy
-OBJDUMP = objdump
+# ============================================================================
+# MAIN TARGETS
+# ============================================================================
 
-CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror \
-         -fno-omit-frame-pointer -fno-stack-protector -fno-pie -no-pie -nostdinc -I$(I) \
-         -Wno-array-bounds -Wno-infinite-recursion
-
-LDFLAGS = -m elf_i386
-
-# --- MAIN TARGETS ---
 all: setup icons app_icons $(IMG)/$(OS_NAME).img $(IMG)/fs.img
 
 setup:
@@ -48,6 +52,10 @@ $(IMG)/$(OS_NAME).img: $(B)/bootblock $(B)/kernel
 	@dd if=/dev/zero of=$(IMG)/$(OS_NAME).img count=10000 status=none
 	@dd if=$(B)/bootblock of=$(IMG)/$(OS_NAME).img conv=notrunc status=none
 	@dd if=$(B)/kernel of=$(IMG)/$(OS_NAME).img seek=1 conv=notrunc status=none
+
+# ============================================================================
+# KERNEL BUILD
+# ============================================================================
 
 $(B)/bootblock: $(K)/bootasm.S $(K)/bootmain.c $(S)/sign.go
 	$(CC) $(CFLAGS) -fno-pic -O -c $(K)/bootmain.c -o $(B)/bootmain.o
@@ -86,22 +94,73 @@ $(B)/entryother: $(K)/entryother.S
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o $(B)/bootblockother.o $(B)/entryother.o
 	$(OBJCOPY) -S -O binary -j .text $(B)/bootblockother.o $(B)/entryother
 
-# --- USER LAND ---
-ULIB = $(addprefix $(B)/, ulib.o usys.o printf.o umalloc.o user_gui.o user_window.o user_handler.o icons_data.o app_icons_data.o character.o)
+# ============================================================================
+# USER LIBRARY
+# ============================================================================
 
-$(B)/_%: $(B)/%.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+ULIB_OBJS = ulib.o usys.o printf.o umalloc.o user_gui.o user_window.o \
+            user_handler.o icons_data.o app_icons_data.o character.o
 
+ULIB = $(addprefix $(B)/, $(ULIB_OBJS))
+
+# User library compilation
 $(B)/%.o: $(U)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(B)/%.o: $(A)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(B)/%.o: $(U)/%.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# --- FILE SYSTEM ---
+# ============================================================================
+# BASE USER PROGRAMS (single file in user/)
+# ============================================================================
+
+# Pattern: build/_program depends on build/program.o
+$(B)/_%: $(B)/%.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+
+# ============================================================================
+# app
+# ============================================================================
+
+# --- Terminal
+$(B)/terminal.o: $(A)/terminal/terminal.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(B)/_terminal: $(B)/terminal.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+
+# --- Editor
+$(B)/editor.o: $(A)/editor/editor.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(B)/_editor: $(B)/editor.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+
+# --- Explorer
+$(B)/explorer.o: $(A)/explorer/explorer.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(B)/_explorer: $(B)/explorer.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+
+# --- Calculator
+$(B)/calculator.o: $(A)/calculator/calculator.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(B)/_calculator: $(B)/calculator.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+
+# --- Flappy Bird
+$(B)/floppybird.o: $(A)/floppybird/floppybird.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(B)/_floppybird: $(B)/floppybird.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+
+# ============================================================================
+# FILE SYSTEM IMAGE
+# ============================================================================
+
 UPROGS = \
 	$(B)/_init \
 	$(B)/_ls \
@@ -111,34 +170,39 @@ UPROGS = \
 	$(B)/_proc_demo \
 	$(B)/_desktop \
 	$(B)/_startWindow \
+	$(B)/_terminal \
 	$(B)/_editor \
 	$(B)/_explorer \
-	$(B)/_terminal \
 	$(B)/_floppybird \
-	$(B)/_calculator
-
+	$(B)/_calculator \
+	
 $(IMG)/fs.img: $(B)/mkfs README.md LICENSE readme.txt $(UPROGS)
 	$(B)/mkfs $(IMG)/fs.img README.md LICENSE readme.txt $(UPROGS)
 
 $(B)/mkfs: $(K)/mkfs.c
 	gcc -Werror -Wall -o $(B)/mkfs $(K)/mkfs.c
 
+# ============================================================================
+# UTILITIES
+# ============================================================================
+
 QEMUOPTS = -drive file=$(IMG)/fs.img,index=1,media=disk,format=raw \
 	   -drive file=$(IMG)/$(OS_NAME).img,index=0,media=disk,format=raw \
 	   -smp 2 -m 512
 
 run:
-	@qemu-system-i386  -serial mon:stdio $(QEMUOPTS)
+	@qemu-system-i386 -serial mon:stdio $(QEMUOPTS)
 
 makerun: all run
 
 clean:
 	rm -rf $(B) $(IMG)
 
-# --- FORMATTING ---
 format:
-	@echo "Formatting source code"
+	@echo "Formatting source code..."
 	@find $(K) $(U) $(A) -name "*.c" | grep -v "icons_data.c" | grep -v "app_icons_data.c" | xargs clang-format -i
 	@echo "Formatting complete."
 
 .PHONY: all clean setup run icons app_icons makerun format
+
+-include $(B)/*.d
