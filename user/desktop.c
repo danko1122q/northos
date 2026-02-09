@@ -31,6 +31,9 @@ typedef struct {
 	int x, y;
 	int isActive;
 	int isSelected;
+	// Tambahan untuk multi-drag: posisi relatif saat drag dimulai
+	int dragOffsetX;
+	int dragOffsetY;
 } DesktopApp;
 
 window desktop;
@@ -43,12 +46,14 @@ struct RGBA iconBgColor;
 
 DesktopApp apps[MAX_APPS];
 
-int draggingApp = -1;
+// Multi-drag state
+int draggingApp = -1;           // App yang di-drag (leader)
 int isDragging = 0;
 int dragStartX = 0;
 int dragStartY = 0;
 int appOriginalX = 0;
 int appOriginalY = 0;
+int selectedCount = 0;          // Jumlah app yang terpilih
 
 int isSelecting = 0;
 int selectionStartX = 0;
@@ -67,6 +72,18 @@ void clearAllSelections() {
 	for (int i = 0; i < MAX_APPS; i++) {
 		apps[i].isSelected = 0;
 	}
+	selectedCount = 0;
+}
+
+// Hitung jumlah app yang terpilih
+int countSelectedApps() {
+	int count = 0;
+	for (int i = 0; i < MAX_APPS; i++) {
+		if (apps[i].isActive && apps[i].isSelected) {
+			count++;
+		}
+	}
+	return count;
 }
 
 int isAppInSelectionBox(int appIdx, int boxX1, int boxY1, int boxX2,
@@ -90,6 +107,7 @@ void updateSelection(int boxX1, int boxY1, int boxX2, int boxY2) {
 		apps[i].isSelected =
 			isAppInSelectionBox(i, boxX1, boxY1, boxX2, boxY2);
 	}
+	selectedCount = countSelectedApps();
 }
 
 void drawSelectionBoxFast(int x1, int y1, int x2, int y2) {
@@ -263,26 +281,53 @@ void renderAllApps() {
 }
 
 int findAppAtPosition(int mouseX, int mouseY) {
-	int foundIdx = -1;
-	int topMostZ = -1;
-
-	for (int i = 0; i < MAX_APPS; i++) {
+	for (int i = MAX_APPS - 1; i >= 0; i--) {
 		if (!apps[i].isActive)
 			continue;
 
 		int x = apps[i].x;
 		int y = apps[i].y;
 
-		if (mouseX >= x && mouseX < x + ICON_SIZE && mouseY >= y &&
-		    mouseY < y + APP_TOTAL_HEIGHT) {
-			if (i > topMostZ) {
-				topMostZ = i;
-				foundIdx = i;
-			}
+		if (mouseX >= x && mouseX < x + ICON_SIZE && 
+		    mouseY >= y && mouseY < y + APP_TOTAL_HEIGHT) {
+			return i;
 		}
 	}
+	return -1;
+}
 
-	return foundIdx;
+// Setup offsets untuk semua selected apps saat drag dimulai
+void setupMultiDragOffsets(int leaderIdx, int startX, int startY) {
+	for (int i = 0; i < MAX_APPS; i++) {
+		if (apps[i].isActive && apps[i].isSelected) {
+			// Simpan offset relatif terhadap leader
+			apps[i].dragOffsetX = apps[i].x - apps[leaderIdx].x;
+			apps[i].dragOffsetY = apps[i].y - apps[leaderIdx].y;
+		}
+	}
+}
+
+// Update posisi semua selected apps saat drag
+void updateMultiDragPositions(int leaderIdx, int newLeaderX, int newLeaderY) {
+	for (int i = 0; i < MAX_APPS; i++) {
+		if (!apps[i].isActive || !apps[i].isSelected)
+			continue;
+
+		// Hitung posisi baru berdasarkan offset
+		int newX = newLeaderX + apps[i].dragOffsetX;
+		int newY = newLeaderY + apps[i].dragOffsetY;
+
+		// Boundary check
+		if (newX < 0) newX = 0;
+		if (newY < 0) newY = 0;
+		if (newX + ICON_SIZE > SCREEN_WIDTH)
+			newX = SCREEN_WIDTH - ICON_SIZE;
+		if (newY + APP_TOTAL_HEIGHT > SCREEN_HEIGHT - 40)
+			newY = SCREEN_HEIGHT - 40 - APP_TOTAL_HEIGHT;
+
+		apps[i].x = newX;
+		apps[i].y = newY;
+	}
 }
 
 void addDesktopApp(char *name, char *exec, int iconId, int x, int y) {
@@ -295,6 +340,8 @@ void addDesktopApp(char *name, char *exec, int iconId, int x, int y) {
 			apps[i].y = y;
 			apps[i].isActive = 1;
 			apps[i].isSelected = 0;
+			apps[i].dragOffsetX = 0;
+			apps[i].dragOffsetY = 0;
 			return;
 		}
 	}
@@ -367,14 +414,28 @@ void customUpdateWindow() {
 			int appIdx = findAppAtPosition(mouseX, mouseY);
 
 			if (appIdx != -1) {
+				// Jika klik app yang tidak terpilih, clear selection
+				if (!apps[appIdx].isSelected) {
+					clearAllSelections();
+					apps[appIdx].isSelected = 1;
+					selectedCount = 1;
+				}
+				
 				draggingApp = appIdx;
 				isDragging = 0;
 				dragStartX = mouseX;
 				dragStartY = mouseY;
+				
+				// Setup offsets untuk multi-drag
+				setupMultiDragOffsets(appIdx, mouseX, mouseY);
+				
+				// Simpan posisi original leader
 				appOriginalX = apps[appIdx].x;
 				appOriginalY = apps[appIdx].y;
+				
 				isSelecting = 0;
 			} else {
+				// Klik di empty space -> start selection box
 				isSelecting = 1;
 				selectionStartX = mouseX;
 				selectionStartY = mouseY;
@@ -401,27 +462,20 @@ void customUpdateWindow() {
 				}
 
 				if (isDragging) {
-					apps[draggingApp].x =
-						appOriginalX + deltaX;
-					apps[draggingApp].y =
-						appOriginalY + deltaY;
+					// Multi-drag: update semua selected apps
+					int newLeaderX = appOriginalX + deltaX;
+					int newLeaderY = appOriginalY + deltaY;
+					
+					// Boundary check untuk leader
+					if (newLeaderX < 0) newLeaderX = 0;
+					if (newLeaderY < 0) newLeaderY = 0;
+					if (newLeaderX + ICON_SIZE > SCREEN_WIDTH)
+						newLeaderX = SCREEN_WIDTH - ICON_SIZE;
+					if (newLeaderY + APP_TOTAL_HEIGHT > SCREEN_HEIGHT - 40)
+						newLeaderY = SCREEN_HEIGHT - 40 - APP_TOTAL_HEIGHT;
 
-					if (apps[draggingApp].x < 0)
-						apps[draggingApp].x = 0;
-					if (apps[draggingApp].y < 0)
-						apps[draggingApp].y = 0;
-					if (apps[draggingApp].x + ICON_SIZE >
-					    SCREEN_WIDTH)
-						apps[draggingApp].x =
-							SCREEN_WIDTH -
-							ICON_SIZE;
-					if (apps[draggingApp].y +
-						    APP_TOTAL_HEIGHT >
-					    SCREEN_HEIGHT - 40)
-						apps[draggingApp].y =
-							SCREEN_HEIGHT - 40 -
-							APP_TOTAL_HEIGHT;
-
+					updateMultiDragPositions(draggingApp, newLeaderX, newLeaderY);
+					
 					desktop.needsRepaint = 1;
 				}
 			}
@@ -482,6 +536,9 @@ void customUpdateWindow() {
 			int appIdx = findAppAtPosition(mouseX, mouseY);
 
 			if (appIdx == -1) {
+				// Klik di empty space -> clear selection
+				clearAllSelections();
+				
 				for (int p = desktop.widgetlisttail; p != -1;
 				     p = desktop.widgets[p].prev) {
 					Widget *w = &desktop.widgets[p];
@@ -493,6 +550,12 @@ void customUpdateWindow() {
 						break;
 					}
 				}
+			} else {
+				// Klik di app -> jadikan satu-satunya yang terpilih
+				clearAllSelections();
+				apps[appIdx].isSelected = 1;
+				selectedCount = 1;
+				desktop.needsRepaint = 1;
 			}
 		}
 
@@ -500,6 +563,7 @@ void customUpdateWindow() {
 			int appIdx = findAppAtPosition(mouseX, mouseY);
 
 			if (appIdx != -1) {
+				// Double-click hanya jalankan yang diklik
 				if (fork() == 0) {
 					char *argv2[] = {apps[appIdx].exec, 0};
 					exec(argv2[0], argv2);
@@ -590,8 +654,7 @@ void startWindowHandler(Widget *w, message *msg) {
 		printf(1, "Start button clicked!\n");
 
 		if (fork() == 0) {
-			// Child: run startWindow
-			char *argv2[] = {"startWindow", 0}; // Tanpa argument
+			char *argv2[] = {"startWindow", 0};
 			exec(argv2[0], argv2);
 			printf(1, "Failed to start startWindow\n");
 			exit();
@@ -660,6 +723,8 @@ int main(int argc, char *argv[]) {
 	for (int i = 0; i < MAX_APPS; i++) {
 		apps[i].isActive = 0;
 		apps[i].isSelected = 0;
+		apps[i].dragOffsetX = 0;
+		apps[i].dragOffsetY = 0;
 	}
 
 	addDesktopApp("Terminal", "terminal", APP_ICON_TERMINAL, 20, 20);

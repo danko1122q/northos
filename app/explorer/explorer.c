@@ -10,151 +10,220 @@
 #include "user_handler.h"
 #include "user_window.h"
 
+#define TOPBAR_HEIGHT 40
+#define STATUSBAR_HEIGHT 24
+#define ITEM_HEIGHT 24
+#define ITEM_PADDING 4
+#define CONTENT_PADDING 8
+#define MAX_PATH_DEPTH 256
+
 window desktop;
 char current_path[MAX_LONG_STRLEN];
-int current_path_widget;
-int toolbar_bg_widget;
-int sidebar_bg_widget;
-int content_bg_widget;
-int input_widget = -1;
-int rename_widget = -1;
-int create_btn_widget = -1;
-int rename_btn_widget = -1;
-int cancel_btn_widget = -1;
-int selected_widget = -1;
-char selected_name[MAX_SHORT_STRLEN];
-int is_selected_dir = 0;
-int selected_x = 0;
-int selected_y = 0;
-int selected_w = 0;
-int selected_h = 0;
+
+int topbar_widget = -1;
+int statusbar_widget = -1;
+int path_display_widget = -1;
+
 int selected_index = -1;
 int total_items = 0;
-int input_mode = 0; // 0=none, 1=newfolder, 2=newfile, 3=rename
+char selected_name[MAX_SHORT_STRLEN];
+int is_selected_dir = 0;
 
-struct RGBA textColor;
-struct RGBA dirColor;
-struct RGBA bgColor;
-struct RGBA buttonColor;
-struct RGBA whiteColor;
-struct RGBA selectedColor;
-struct RGBA sidebarColor;
-struct RGBA toolbarColor;
-struct RGBA contentBgColor;
-struct RGBA borderColor;
-struct RGBA inputBgColor;
+int dialog_active = 0;
+int dialog_bg = -1;
+int dialog_panel = -1;
+int dialog_input = -1;
+int dialog_btn1 = -1;
+int dialog_btn2 = -1;
+int dialog_title = -1;
 
-int toolbarHeight = 45;
-int sidebarWidth = 140;
-int itemStartY = 50;
-int itemStartX = 150;
-int inputPanelY = 350; // Area untuk input di bawah
+int need_refresh = 0;
 
-void gui_ls(char *path);
-void refreshView();
-void clearInputWidgets();
-void clearRenameWidgets();
-void clearSelection();
-int canOpenWithEditor(char *filename);
-void selectItemByIndex(int index);
-void explorerKeyHandler(Widget *widget, message *msg);
+typedef struct {
+	char name[MAX_SHORT_STRLEN];
+	int is_dir;
+	int widget_id;
+	int y_pos;
+} FileItem;
+
+FileItem items[MAX_WIDGET_SIZE];
+
+struct RGBA color_bg;
+struct RGBA color_topbar;
+struct RGBA color_statusbar;
+struct RGBA color_text_dark;
+struct RGBA color_text_light;
+struct RGBA color_accent;
+struct RGBA color_folder;
+struct RGBA color_file;
+struct RGBA color_selected;
+struct RGBA color_border;
+struct RGBA color_dialog_bg;
+struct RGBA color_dialog_overlay;
+struct RGBA color_button;
+struct RGBA color_white;
+struct RGBA color_input_border;
+
+void initColors() {
+	color_bg.R = 248;
+	color_bg.G = 249;
+	color_bg.B = 250;
+	color_bg.A = 255;
+	color_topbar.R = 255;
+	color_topbar.G = 255;
+	color_topbar.B = 255;
+	color_topbar.A = 255;
+	color_statusbar.R = 245;
+	color_statusbar.G = 246;
+	color_statusbar.B = 247;
+	color_statusbar.A = 255;
+
+	color_text_dark.R = 33;
+	color_text_dark.G = 37;
+	color_text_dark.B = 41;
+	color_text_dark.A = 255;
+	color_text_light.R = 108;
+	color_text_light.G = 117;
+	color_text_light.B = 125;
+	color_text_light.A = 255;
+
+	color_accent.R = 0;
+	color_accent.G = 123;
+	color_accent.B = 255;
+	color_accent.A = 255;
+	color_folder.R = 52;
+	color_folder.G = 144;
+	color_folder.B = 220;
+	color_folder.A = 255;
+	color_file.R = 108;
+	color_file.G = 117;
+	color_file.B = 125;
+	color_file.A = 255;
+
+	color_selected.R = 0;
+	color_selected.G = 123;
+	color_selected.B = 255;
+	color_selected.A = 40;
+	color_border.R = 222;
+	color_border.G = 226;
+	color_border.B = 230;
+	color_border.A = 255;
+	color_input_border.R = 206;
+	color_input_border.G = 212;
+	color_input_border.B = 218;
+	color_input_border.A = 255;
+
+	color_dialog_bg.R = 255;
+	color_dialog_bg.G = 255;
+	color_dialog_bg.B = 255;
+	color_dialog_bg.A = 255;
+	color_dialog_overlay.R = 0;
+	color_dialog_overlay.G = 0;
+	color_dialog_overlay.B = 0;
+	color_dialog_overlay.A = 120;
+
+	color_button.R = 0;
+	color_button.G = 123;
+	color_button.B = 255;
+	color_button.A = 255;
+	color_white.R = 255;
+	color_white.G = 255;
+	color_white.B = 255;
+	color_white.A = 255;
+}
 
 char *getFileExtension(char *filename) {
 	static char buf[DIRSIZ + 1];
 	char *p;
+
+	if (!filename || strlen(filename) == 0)
+		return "";
+
 	for (p = filename + strlen(filename); p >= filename && *p != '.'; p--)
 		;
 	p++;
+
 	if (strlen(p) >= DIRSIZ)
 		return p;
+
 	memmove(buf, p, strlen(p));
 	memset(buf + strlen(p), '\0', 1);
 	return buf;
 }
 
-int isOpenable(char *filename) {
-	char *allowed[] = {"terminal", "editor", "explorer", "floppybird"};
-	for (int i = 0; i < 4; i++) {
-		if (strcmp(filename, allowed[i]) == 0)
-			return 1;
-	}
-	return 0;
-}
-
 int shouldShowFile(char *filename) {
+	if (!filename)
+		return 0;
+
 	char *guiApps[] = {"terminal", "editor", "explorer", "floppybird"};
 	for (int i = 0; i < 4; i++) {
 		if (strcmp(filename, guiApps[i]) == 0)
 			return 1;
 	}
 
-	if (strcmp(getFileExtension(filename), "txt") == 0)
-		return 1;
-
 	char *ext = getFileExtension(filename);
-	if (strcmp(ext, "md") == 0)
+	if (strcmp(ext, "txt") == 0 || strcmp(ext, "md") == 0)
 		return 1;
 
-	int hasUpperCase = 0;
 	for (int i = 0; filename[i] != '\0'; i++) {
-		if (filename[i] >= 'A' && filename[i] <= 'Z') {
-			hasUpperCase = 1;
-			break;
-		}
+		if (filename[i] >= 'A' && filename[i] <= 'Z')
+			return 1;
 	}
-	if (hasUpperCase)
-		return 1;
-
 	return 0;
 }
 
 int canOpenWithEditor(char *filename) {
+	if (!filename)
+		return 0;
+
 	char *ext = getFileExtension(filename);
-
-	if (strcmp(ext, "txt") == 0)
-		return 1;
-
-	if (strcmp(ext, "md") == 0)
+	if (strcmp(ext, "txt") == 0 || strcmp(ext, "md") == 0)
 		return 1;
 
 	for (int i = 0; filename[i] != '\0'; i++) {
-		if (filename[i] >= 'A' && filename[i] <= 'Z') {
+		if (filename[i] >= 'A' && filename[i] <= 'Z')
 			return 1;
-		}
 	}
-
 	return 0;
 }
 
 int isProtected(char *name) {
-	char *actualName = name;
-	if (name[0] == '[' && name[1] == 'D' && name[2] == ']' &&
-	    name[3] == ' ') {
-		actualName = name + 4;
-	}
+	if (!name)
+		return 1;
 
 	char *protected[] = {"editor",	  "explorer", "terminal", "floppybird",
 			     ".",	  "..",	      "kernel",	  "initcode",
-			     "init",	  "cat",      "echo",	  "forktest",
-			     "grep",	  "kill",     "ln",	  "ls",
-			     "mkdir",	  "rm",	      "sh",	  "stressfs",
-			     "usertests", "wc",	      "zombie"};
+			     "init",	  "cat",      "echo",	  "grep",
+			     "kill",	  "ln",	      "ls",	  "mkdir",
+			     "rm",	  "sh",	      "wc",	  "stressfs",
+			     "usertests", "zombie",   "forktest"};
 
 	for (int i = 0; i < 23; i++) {
-		if (strcmp(actualName, protected[i]) == 0) {
+		if (strcmp(name, protected[i]) == 0)
 			return 1;
-		}
 	}
 	return 0;
 }
 
-char *getparentpath(char *path) {
+char *getParentPath(char *path) {
 	static char buf[MAX_LONG_STRLEN];
 	char *p;
+
+	if (!path) {
+		strcpy(buf, "/");
+		return buf;
+	}
+
 	for (p = path + strlen(path); p >= path && *p != '/'; p--)
 		;
-	memmove(buf, path, p - path);
-	buf[p - path] = '\0';
+
+	int len = p - path;
+	if (len >= MAX_LONG_STRLEN)
+		len = MAX_LONG_STRLEN - 1;
+
+	memmove(buf, path, len);
+	buf[len] = '\0';
+
 	if (strlen(buf) == 0)
 		strcpy(buf, "/");
 	return buf;
@@ -163,168 +232,420 @@ char *getparentpath(char *path) {
 char *fmtname(char *path) {
 	static char buf[DIRSIZ + 1];
 	char *p;
+
+	if (!path)
+		return "";
+
 	for (p = path + strlen(path); p >= path && *p != '/'; p--)
 		;
 	p++;
+
 	if (strlen(p) >= DIRSIZ)
 		return p;
+
 	memmove(buf, p, strlen(p));
 	memset(buf + strlen(p), '\0', 1);
 	return buf;
 }
 
-void clearSelection() {
-	selected_widget = -1;
-	is_selected_dir = 0;
-	selected_x = 0;
-	selected_y = 0;
-	selected_w = 0;
-	selected_h = 0;
-	selected_index = -1;
-	memset(selected_name, 0, MAX_SHORT_STRLEN);
+void clearDialog() {
+	if (dialog_bg != -1) {
+		removeWidget(&desktop, dialog_bg);
+		dialog_bg = -1;
+	}
+	if (dialog_panel != -1) {
+		removeWidget(&desktop, dialog_panel);
+		dialog_panel = -1;
+	}
+	if (dialog_title != -1) {
+		removeWidget(&desktop, dialog_title);
+		dialog_title = -1;
+	}
+	if (dialog_input != -1) {
+		removeWidget(&desktop, dialog_input);
+		dialog_input = -1;
+	}
+	if (dialog_btn1 != -1) {
+		removeWidget(&desktop, dialog_btn1);
+		dialog_btn1 = -1;
+	}
+	if (dialog_btn2 != -1) {
+		removeWidget(&desktop, dialog_btn2);
+		dialog_btn2 = -1;
+	}
+	dialog_active = 0;
 	desktop.needsRepaint = 1;
 }
 
-void clearInputWidgets() {
-	if (input_widget != -1) {
-		removeWidget(&desktop, input_widget);
-		input_widget = -1;
+void cancelDialog(Widget *w, message *msg) {
+	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
+		clearDialog();
 	}
-	if (create_btn_widget != -1) {
-		removeWidget(&desktop, create_btn_widget);
-		create_btn_widget = -1;
-	}
-	if (cancel_btn_widget != -1) {
-		removeWidget(&desktop, cancel_btn_widget);
-		cancel_btn_widget = -1;
-	}
-	input_mode = 0;
-	desktop.needsRepaint = 1;
 }
 
-void clearRenameWidgets() {
-	if (rename_widget != -1) {
-		removeWidget(&desktop, rename_widget);
-		rename_widget = -1;
-	}
-	if (rename_btn_widget != -1) {
-		removeWidget(&desktop, rename_btn_widget);
-		rename_btn_widget = -1;
-	}
-	if (cancel_btn_widget != -1) {
-		removeWidget(&desktop, cancel_btn_widget);
-		cancel_btn_widget = -1;
-	}
-	input_mode = 0;
-	desktop.needsRepaint = 1;
-}
-
-void refreshView() {
-	clearInputWidgets();
-	clearRenameWidgets();
-	clearSelection();
-	gui_ls(current_path);
-	desktop.needsRepaint = 1;
-}
-
-void selectItemByIndex(int index) {
-	if (index < 0 || index >= total_items)
+void confirmNewFolder(Widget *w, message *msg) {
+	if (msg->msg_type != M_MOUSE_LEFT_CLICK || dialog_input == -1)
 		return;
 
-	clearRenameWidgets();
-	clearInputWidgets();
+	char newDir[MAX_LONG_STRLEN];
+	strcpy(newDir, desktop.widgets[dialog_input].context.inputfield->text);
 
-	int currentIndex = 0;
-	for (int p = desktop.widgetlisthead; p != -1;
-	     p = desktop.widgets[p].next) {
-		if (desktop.widgets[p].scrollable == 1 &&
-		    desktop.widgets[p].type == TEXT &&
-		    p != current_path_widget) {
+	if (strlen(newDir) == 0) {
+		clearDialog();
+		return;
+	}
 
-			if (currentIndex == index) {
-				selected_widget = p;
-				selected_index = index;
+	char fullPath[MAX_LONG_STRLEN];
+	int pathLen = strlen(current_path);
 
-				if (desktop.widgets[p].context.text->text[0] ==
-					    '[' &&
-				    desktop.widgets[p].context.text->text[1] ==
-					    'D') {
-					is_selected_dir = 1;
-					strcpy(selected_name,
-					       desktop.widgets[p]
-							       .context.text
-							       ->text +
-						       4);
-				} else {
-					is_selected_dir = 0;
-					strcpy(selected_name,
-					       desktop.widgets[p]
-							       .context.text
-							       ->text +
-						       2);
-				}
+	if (pathLen > 0 && pathLen + strlen(newDir) + 2 < MAX_LONG_STRLEN) {
+		strcpy(fullPath, current_path);
+		strcat(fullPath, "/");
+		strcat(fullPath, newDir);
+	} else if (pathLen == 0 && strlen(newDir) < MAX_LONG_STRLEN) {
+		strcpy(fullPath, newDir);
+	} else {
+		clearDialog();
+		return;
+	}
 
-				selected_x =
-					desktop.widgets[p].position.xmin - 5;
-				selected_y =
-					desktop.widgets[p].position.ymin - 3;
-				selected_w = desktop.widgets[p].position.xmax -
-					     desktop.widgets[p].position.xmin +
-					     10;
-				selected_h = desktop.widgets[p].position.ymax -
-					     desktop.widgets[p].position.ymin +
-					     6;
+	mkdir(fullPath);
+	clearDialog();
+	need_refresh = 1;
+}
 
-				int item_top = desktop.widgets[p].position.ymin;
-				int item_bottom =
-					desktop.widgets[p].position.ymax;
-				int visible_top = itemStartY;
-				int visible_bottom = inputPanelY - 10;
+void confirmNewFile(Widget *w, message *msg) {
+	if (msg->msg_type != M_MOUSE_LEFT_CLICK || dialog_input == -1)
+		return;
 
-				if (item_bottom - desktop.scrollOffsetY >
-				    visible_bottom) {
-					desktop.scrollOffsetY = item_bottom -
-								visible_bottom +
-								20;
-				}
-				if (item_top - desktop.scrollOffsetY <
-				    visible_top) {
-					desktop.scrollOffsetY =
-						item_top - visible_top - 20;
-					if (desktop.scrollOffsetY < 0)
-						desktop.scrollOffsetY = 0;
-				}
+	char newFile[MAX_LONG_STRLEN];
+	strcpy(newFile, desktop.widgets[dialog_input].context.inputfield->text);
 
-				desktop.needsRepaint = 1;
-				break;
-			}
-			currentIndex++;
+	if (strlen(newFile) == 0) {
+		clearDialog();
+		return;
+	}
+
+	char fullPath[MAX_LONG_STRLEN];
+	int pathLen = strlen(current_path);
+
+	if (pathLen > 0 && pathLen + strlen(newFile) + 2 < MAX_LONG_STRLEN) {
+		strcpy(fullPath, current_path);
+		strcat(fullPath, "/");
+		strcat(fullPath, newFile);
+	} else if (pathLen == 0 && strlen(newFile) < MAX_LONG_STRLEN) {
+		strcpy(fullPath, newFile);
+	} else {
+		clearDialog();
+		return;
+	}
+
+	int fd = open(fullPath, O_CREATE | O_WRONLY);
+	if (fd >= 0)
+		close(fd);
+
+	clearDialog();
+	need_refresh = 1;
+}
+
+void confirmRename(Widget *w, message *msg) {
+	if (msg->msg_type != M_MOUSE_LEFT_CLICK || dialog_input == -1)
+		return;
+	if (selected_index == -1 || selected_index >= total_items)
+		return;
+
+	char newName[MAX_SHORT_STRLEN];
+	strcpy(newName, desktop.widgets[dialog_input].context.inputfield->text);
+
+	if (strlen(newName) == 0 || strcmp(newName, selected_name) == 0) {
+		clearDialog();
+		return;
+	}
+
+	char oldPath[MAX_LONG_STRLEN], newPath[MAX_LONG_STRLEN];
+	int pathLen = strlen(current_path);
+
+	if (pathLen > 0) {
+		if (pathLen + strlen(selected_name) + 2 >= MAX_LONG_STRLEN ||
+		    pathLen + strlen(newName) + 2 >= MAX_LONG_STRLEN) {
+			clearDialog();
+			return;
 		}
+		strcpy(oldPath, current_path);
+		strcat(oldPath, "/");
+		strcat(oldPath, selected_name);
+		strcpy(newPath, current_path);
+		strcat(newPath, "/");
+		strcat(newPath, newName);
+	} else {
+		if (strlen(selected_name) >= MAX_LONG_STRLEN ||
+		    strlen(newName) >= MAX_LONG_STRLEN) {
+			clearDialog();
+			return;
+		}
+		strcpy(oldPath, selected_name);
+		strcpy(newPath, newName);
+	}
+
+	if (link(oldPath, newPath) == 0) {
+		unlink(oldPath);
+	}
+
+	clearDialog();
+	need_refresh = 1;
+}
+
+void dialogInputHandler(Widget *w, message *msg) {
+	if (msg->msg_type != M_KEY_DOWN)
+		return;
+
+	inputFieldKeyHandler(w, msg);
+}
+
+void showDialog(char *title, char *defaultText,
+		void (*onConfirm)(Widget *, message *)) {
+	clearDialog();
+	dialog_active = 1;
+
+	int dialogW = 340;
+	int dialogH = 140;
+	int dialogX = (desktop.width - dialogW) / 2;
+	int dialogY = (desktop.height - dialogH) / 2;
+
+	dialog_bg = addColorFillWidget(&desktop, color_dialog_overlay, 0, 0,
+				       desktop.width, desktop.height, 0,
+				       emptyHandler);
+	dialog_panel =
+		addColorFillWidget(&desktop, color_dialog_bg, dialogX, dialogY,
+				   dialogW, dialogH, 0, emptyHandler);
+
+	dialog_title =
+		addTextWidget(&desktop, color_text_dark, title, dialogX + 20,
+			      dialogY + 20, dialogW - 40, 20, 0, emptyHandler);
+
+	dialog_input = addInputFieldWidget(
+		&desktop, color_text_dark, defaultText, dialogX + 20,
+		dialogY + 55, dialogW - 40, 28, 0, dialogInputHandler);
+
+	dialog_btn1 = addButtonWidget(&desktop, color_white, color_button, "OK",
+				      dialogX + dialogW - 160, dialogY + 100,
+				      70, 28, 0, onConfirm);
+
+	dialog_btn2 = addButtonWidget(&desktop, color_text_dark, color_border,
+				      "Cancel", dialogX + dialogW - 80,
+				      dialogY + 100, 70, 28, 0, cancelDialog);
+
+	desktop.keyfocus = dialog_input;
+	desktop.needsRepaint = 1;
+}
+
+void handleBack(Widget *w, message *msg) {
+	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
+		if (dialog_active)
+			return;
+
+		char *parentPath = getParentPath(current_path);
+		if (strcmp(parentPath, "/") == 0) {
+			strcpy(current_path, "");
+		} else {
+			strcpy(current_path, parentPath);
+		}
+		need_refresh = 1;
 	}
 }
 
-void explorerKeyHandler(Widget *widget, message *msg) {
+void handleHome(Widget *w, message *msg) {
+	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
+		if (dialog_active)
+			return;
+		strcpy(current_path, "");
+		need_refresh = 1;
+	}
+}
+
+void handleNewFolder(Widget *w, message *msg) {
+	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
+		if (dialog_active)
+			return;
+		showDialog("New Folder", "newfolder", confirmNewFolder);
+	}
+}
+
+void handleNewFile(Widget *w, message *msg) {
+	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
+		if (dialog_active)
+			return;
+		showDialog("New File", "newfile.txt", confirmNewFile);
+	}
+}
+
+void handleRename(Widget *w, message *msg) {
+	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
+		if (dialog_active)
+			return;
+		if (selected_index == -1 || selected_index >= total_items)
+			return;
+		if (isProtected(selected_name))
+			return;
+		showDialog("Rename", selected_name, confirmRename);
+	}
+}
+
+void handleDelete(Widget *w, message *msg) {
+	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
+		if (dialog_active)
+			return;
+		if (selected_index == -1 || selected_index >= total_items)
+			return;
+		if (isProtected(selected_name))
+			return;
+
+		char fullPath[MAX_LONG_STRLEN];
+		int pathLen = strlen(current_path);
+
+		if (pathLen > 0) {
+			if (pathLen + strlen(selected_name) + 2 >=
+			    MAX_LONG_STRLEN)
+				return;
+			strcpy(fullPath, current_path);
+			strcat(fullPath, "/");
+			strcat(fullPath, selected_name);
+		} else {
+			if (strlen(selected_name) >= MAX_LONG_STRLEN)
+				return;
+			strcpy(fullPath, selected_name);
+		}
+
+		unlink(fullPath);
+		need_refresh = 1;
+	}
+}
+
+void handleFileClick(Widget *w, message *msg) {
+	if (dialog_active)
+		return;
+
+	int idx = -1;
+	int wid = findWidgetId(&desktop, w);
+
+	for (int i = 0; i < total_items; i++) {
+		if (items[i].widget_id == wid) {
+			idx = i;
+			break;
+		}
+	}
+
+	if (idx == -1 || idx >= total_items)
+		return;
+
+	if (msg->msg_type == M_MOUSE_DBCLICK) {
+		if (items[idx].is_dir) {
+			int current_path_length = strlen(current_path);
+			int name_length = strlen(items[idx].name);
+
+			if (current_path_length + name_length + 2 >=
+			    MAX_LONG_STRLEN)
+				return;
+
+			if (current_path_length > 0) {
+				current_path[current_path_length] = '/';
+				strcpy(current_path + current_path_length + 1,
+				       items[idx].name);
+			} else {
+				strcpy(current_path, items[idx].name);
+			}
+			need_refresh = 1;
+		} else {
+			char fullPath[MAX_LONG_STRLEN];
+			int pathLen = strlen(current_path);
+			int nameLen = strlen(items[idx].name);
+
+			if (pathLen > 0) {
+				if (pathLen + nameLen + 2 >= MAX_LONG_STRLEN)
+					return;
+				strcpy(fullPath, current_path);
+				strcat(fullPath, "/");
+				strcat(fullPath, items[idx].name);
+			} else {
+				if (nameLen >= MAX_LONG_STRLEN)
+					return;
+				strcpy(fullPath, items[idx].name);
+			}
+
+			if (fork() == 0) {
+				if (canOpenWithEditor(items[idx].name)) {
+					char *argv2[] = {"editor", fullPath, 0};
+					exec(argv2[0], argv2);
+				} else {
+					char *argv2[] = {items[idx].name, 0};
+					exec(argv2[0], argv2);
+				}
+				exit();
+			}
+		}
+	} else if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
+		selected_index = idx;
+
+		int nameLen = strlen(items[idx].name);
+		if (nameLen >= MAX_SHORT_STRLEN)
+			nameLen = MAX_SHORT_STRLEN - 1;
+
+		memmove(selected_name, items[idx].name, nameLen);
+		selected_name[nameLen] = '\0';
+
+		is_selected_dir = items[idx].is_dir;
+		desktop.needsRepaint = 1;
+	}
+}
+
+void handleKeyboard(Widget *w, message *msg) {
 	if (msg->msg_type != M_KEY_DOWN)
+		return;
+	if (dialog_active)
 		return;
 
 	int key = msg->params[0];
 
 	if (key == KEY_DN) {
 		if (selected_index < total_items - 1) {
-			selectItemByIndex(selected_index + 1);
+			selected_index++;
+			if (selected_index >= 0 &&
+			    selected_index < total_items) {
+				strcpy(selected_name,
+				       items[selected_index].name);
+				is_selected_dir = items[selected_index].is_dir;
+				desktop.needsRepaint = 1;
+			}
 		} else if (selected_index == -1 && total_items > 0) {
-			selectItemByIndex(0);
+			selected_index = 0;
+			strcpy(selected_name, items[0].name);
+			is_selected_dir = items[0].is_dir;
+			desktop.needsRepaint = 1;
 		}
 	} else if (key == KEY_UP) {
 		if (selected_index > 0) {
-			selectItemByIndex(selected_index - 1);
+			selected_index--;
+			if (selected_index >= 0 &&
+			    selected_index < total_items) {
+				strcpy(selected_name,
+				       items[selected_index].name);
+				is_selected_dir = items[selected_index].is_dir;
+				desktop.needsRepaint = 1;
+			}
 		} else if (selected_index == -1 && total_items > 0) {
-			selectItemByIndex(0);
+			selected_index = 0;
+			strcpy(selected_name, items[0].name);
+			is_selected_dir = items[0].is_dir;
+			desktop.needsRepaint = 1;
 		}
-	} else if (key == '\n') {
-		if (selected_widget != -1) {
-			if (is_selected_dir) {
-				int current_path_length = strlen(current_path);
+	} else if (key == '\n' && selected_index >= 0 &&
+		   selected_index < total_items) {
+		if (is_selected_dir) {
+			int current_path_length = strlen(current_path);
+			int name_length = strlen(selected_name);
+
+			if (current_path_length + name_length + 2 <
+			    MAX_LONG_STRLEN) {
 				if (current_path_length > 0) {
 					current_path[current_path_length] = '/';
 					strcpy(current_path +
@@ -333,610 +654,286 @@ void explorerKeyHandler(Widget *widget, message *msg) {
 				} else {
 					strcpy(current_path, selected_name);
 				}
-				refreshView();
-			} else {
-				char fullPath[MAX_LONG_STRLEN];
-				if (strlen(current_path) > 0) {
+				need_refresh = 1;
+			}
+		} else {
+			char fullPath[MAX_LONG_STRLEN];
+			int pathLen = strlen(current_path);
+			int nameLen = strlen(selected_name);
+
+			if (pathLen > 0) {
+				if (pathLen + nameLen + 2 < MAX_LONG_STRLEN) {
 					strcpy(fullPath, current_path);
 					strcat(fullPath, "/");
 					strcat(fullPath, selected_name);
 				} else {
-					strcpy(fullPath, selected_name);
+					return;
 				}
-
-				if (fork() == 0) {
-					if (canOpenWithEditor(selected_name)) {
-						char *argv2[] = {"editor",
-								 fullPath, 0};
-						exec(argv2[0], argv2);
-					} else {
-						char *argv2[] = {selected_name,
-								 0};
-						exec(argv2[0], argv2);
-					}
-					exit();
-				}
-			}
-		}
-	}
-}
-
-void cancelInput(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
-		clearInputWidgets();
-		clearRenameWidgets();
-		desktop.needsRepaint = 1;
-	}
-}
-
-void createFolderConfirm(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_LEFT_CLICK && input_widget != -1) {
-		char newDir[MAX_LONG_STRLEN];
-		strcpy(newDir,
-		       desktop.widgets[input_widget].context.inputfield->text);
-
-		if (strlen(newDir) == 0) {
-			clearInputWidgets();
-			return;
-		}
-
-		char fullPath[MAX_LONG_STRLEN];
-		if (strlen(current_path) > 0) {
-			strcpy(fullPath, current_path);
-			strcat(fullPath, "/");
-			strcat(fullPath, newDir);
-		} else {
-			strcpy(fullPath, newDir);
-		}
-
-		mkdir(fullPath);
-		clearInputWidgets();
-		refreshView();
-	}
-}
-
-void newFolderHandler(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
-		clearInputWidgets();
-		clearRenameWidgets();
-
-		input_mode = 1;
-
-		// Background panel untuk input
-		addColorFillWidget(&desktop, inputBgColor, sidebarWidth,
-				   inputPanelY, desktop.width - sidebarWidth,
-				   70, 0, emptyHandler);
-
-		addTextWidget(&desktop, textColor,
-			      "New Folder:", sidebarWidth + 10,
-			      inputPanelY + 10, 120, 20, 0, emptyHandler);
-
-		input_widget = addInputFieldWidget(
-			&desktop, textColor, "newfolder", sidebarWidth + 10,
-			inputPanelY + 35, 300, 25, 0, inputFieldKeyHandler);
-
-		create_btn_widget = addButtonWidget(
-			&desktop, whiteColor, buttonColor, "Create",
-			sidebarWidth + 320, inputPanelY + 35, 70, 25, 0,
-			createFolderConfirm);
-
-		cancel_btn_widget =
-			addButtonWidget(&desktop, textColor, bgColor, "Cancel",
-					sidebarWidth + 395, inputPanelY + 35,
-					70, 25, 0, cancelInput);
-
-		desktop.keyfocus = input_widget;
-		desktop.needsRepaint = 1;
-	}
-}
-
-void createFileConfirm(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_LEFT_CLICK && input_widget != -1) {
-		char newFile[MAX_LONG_STRLEN];
-		strcpy(newFile,
-		       desktop.widgets[input_widget].context.inputfield->text);
-
-		if (strlen(newFile) == 0) {
-			clearInputWidgets();
-			return;
-		}
-
-		char fullPath[MAX_LONG_STRLEN];
-		if (strlen(current_path) > 0) {
-			strcpy(fullPath, current_path);
-			strcat(fullPath, "/");
-			strcat(fullPath, newFile);
-		} else {
-			strcpy(fullPath, newFile);
-		}
-
-		int fd = open(fullPath, O_CREATE | O_WRONLY);
-		if (fd >= 0) {
-			close(fd);
-		}
-
-		clearInputWidgets();
-		refreshView();
-	}
-}
-
-void newFileHandler(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
-		clearInputWidgets();
-		clearRenameWidgets();
-
-		input_mode = 2;
-
-		// Background panel untuk input
-		addColorFillWidget(&desktop, inputBgColor, sidebarWidth,
-				   inputPanelY, desktop.width - sidebarWidth,
-				   70, 0, emptyHandler);
-
-		addTextWidget(&desktop, textColor,
-			      "New File:", sidebarWidth + 10, inputPanelY + 10,
-			      120, 20, 0, emptyHandler);
-
-		input_widget = addInputFieldWidget(
-			&desktop, textColor, "newfile.txt", sidebarWidth + 10,
-			inputPanelY + 35, 300, 25, 0, inputFieldKeyHandler);
-
-		create_btn_widget = addButtonWidget(
-			&desktop, whiteColor, buttonColor, "Create",
-			sidebarWidth + 320, inputPanelY + 35, 70, 25, 0,
-			createFileConfirm);
-
-		cancel_btn_widget =
-			addButtonWidget(&desktop, textColor, bgColor, "Cancel",
-					sidebarWidth + 395, inputPanelY + 35,
-					70, 25, 0, cancelInput);
-
-		desktop.keyfocus = input_widget;
-		desktop.needsRepaint = 1;
-	}
-}
-
-void backHandler(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
-		strcpy(current_path, getparentpath(current_path));
-		if (strcmp(current_path, "/") == 0)
-			strcpy(current_path, "");
-		refreshView();
-	}
-}
-
-void homeHandler(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
-		strcpy(current_path, "");
-		refreshView();
-	}
-}
-
-void cdHandler(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_DBCLICK) {
-		char *folderName = widget->context.text->text + 4;
-
-		int current_path_length = strlen(current_path);
-		if (current_path_length > 0) {
-			current_path[current_path_length] = '/';
-			strcpy(current_path + current_path_length + 1,
-			       folderName);
-		} else {
-			strcpy(current_path, folderName);
-		}
-
-		refreshView();
-	} else if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
-		clearSelection();
-		clearRenameWidgets();
-		clearInputWidgets();
-
-		selected_widget = findWidgetId(&desktop, widget);
-		strcpy(selected_name, widget->context.text->text + 4);
-		is_selected_dir = 1;
-
-		int currentIndex = 0;
-		for (int p = desktop.widgetlisthead; p != -1;
-		     p = desktop.widgets[p].next) {
-			if (desktop.widgets[p].scrollable == 1 &&
-			    desktop.widgets[p].type == TEXT &&
-			    p != current_path_widget) {
-				if (p == selected_widget) {
-					selected_index = currentIndex;
-					break;
-				}
-				currentIndex++;
-			}
-		}
-
-		selected_x = widget->position.xmin - 5;
-		selected_y = widget->position.ymin - 3;
-		selected_w = widget->position.xmax - widget->position.xmin + 10;
-		selected_h = widget->position.ymax - widget->position.ymin + 6;
-
-		desktop.needsRepaint = 1;
-	}
-}
-
-void fileHandler(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_DBCLICK) {
-		char *fileName = widget->context.text->text + 2;
-
-		char fullPath[MAX_LONG_STRLEN];
-		if (strlen(current_path) > 0) {
-			strcpy(fullPath, current_path);
-			strcat(fullPath, "/");
-			strcat(fullPath, fileName);
-		} else {
-			strcpy(fullPath, fileName);
-		}
-
-		if (fork() == 0) {
-			if (canOpenWithEditor(fileName)) {
-				char *argv2[] = {"editor", fullPath, 0};
-				exec(argv2[0], argv2);
 			} else {
-				char *argv2[] = {fileName, 0};
-				exec(argv2[0], argv2);
-			}
-			exit();
-		}
-	} else if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
-		clearSelection();
-		clearRenameWidgets();
-		clearInputWidgets();
-
-		selected_widget = findWidgetId(&desktop, widget);
-		strcpy(selected_name, widget->context.text->text + 2);
-		is_selected_dir = 0;
-
-		int currentIndex = 0;
-		for (int p = desktop.widgetlisthead; p != -1;
-		     p = desktop.widgets[p].next) {
-			if (desktop.widgets[p].scrollable == 1 &&
-			    desktop.widgets[p].type == TEXT &&
-			    p != current_path_widget) {
-				if (p == selected_widget) {
-					selected_index = currentIndex;
-					break;
+				if (nameLen < MAX_LONG_STRLEN) {
+					strcpy(fullPath, selected_name);
+				} else {
+					return;
 				}
-				currentIndex++;
+			}
+
+			if (fork() == 0) {
+				if (canOpenWithEditor(selected_name)) {
+					char *argv2[] = {"editor", fullPath, 0};
+					exec(argv2[0], argv2);
+				} else {
+					char *argv2[] = {selected_name, 0};
+					exec(argv2[0], argv2);
+				}
+				exit();
 			}
 		}
-
-		selected_x = widget->position.xmin - 5;
-		selected_y = widget->position.ymin - 3;
-		selected_w = widget->position.xmax - widget->position.xmin + 10;
-		selected_h = widget->position.ymax - widget->position.ymin + 6;
-
-		desktop.needsRepaint = 1;
 	}
 }
 
-void renameConfirm(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_LEFT_CLICK && rename_widget != -1 &&
-	    selected_widget != -1) {
-		char oldPath[MAX_LONG_STRLEN];
-		char newPath[MAX_LONG_STRLEN];
-
-		char newName[MAX_SHORT_STRLEN];
-		strcpy(newName,
-		       desktop.widgets[rename_widget].context.inputfield->text);
-
-		if (strlen(newName) == 0 ||
-		    strcmp(newName, selected_name) == 0) {
-			clearRenameWidgets();
-			return;
-		}
-
-		if (strlen(current_path) > 0) {
-			strcpy(oldPath, current_path);
-			strcat(oldPath, "/");
-			strcat(oldPath, selected_name);
-		} else {
-			strcpy(oldPath, selected_name);
-		}
-
-		if (strlen(current_path) > 0) {
-			strcpy(newPath, current_path);
-			strcat(newPath, "/");
-			strcat(newPath, newName);
-		} else {
-			strcpy(newPath, newName);
-		}
-
-		if (link(oldPath, newPath) == 0) {
-			unlink(oldPath);
-		}
-
-		clearRenameWidgets();
-		refreshView();
-	}
-}
-
-void renameHandler(Widget *widget, message *msg) {
-	if (msg->msg_type == M_MOUSE_LEFT_CLICK) {
-		if (selected_widget == -1) {
-			return;
-		}
-
-		char checkName[MAX_SHORT_STRLEN];
-		if (is_selected_dir) {
-			strcpy(checkName, "[D] ");
-			strcat(checkName, selected_name);
-		} else {
-			strcpy(checkName, selected_name);
-		}
-
-		if (isProtected(checkName)) {
-			return;
-		}
-
-		clearRenameWidgets();
-		clearInputWidgets();
-
-		input_mode = 3;
-
-		// Background panel untuk rename
-		addColorFillWidget(&desktop, inputBgColor, sidebarWidth,
-				   inputPanelY, desktop.width - sidebarWidth,
-				   70, 0, emptyHandler);
-
-		addTextWidget(&desktop, textColor,
-			      "Rename to:", sidebarWidth + 10, inputPanelY + 10,
-			      120, 20, 0, emptyHandler);
-
-		rename_widget = addInputFieldWidget(
-			&desktop, textColor, selected_name, sidebarWidth + 10,
-			inputPanelY + 35, 300, 25, 0, inputFieldKeyHandler);
-
-		rename_btn_widget = addButtonWidget(
-			&desktop, whiteColor, buttonColor, "Rename",
-			sidebarWidth + 320, inputPanelY + 35, 70, 25, 0,
-			renameConfirm);
-
-		cancel_btn_widget =
-			addButtonWidget(&desktop, textColor, bgColor, "Cancel",
-					sidebarWidth + 395, inputPanelY + 35,
-					70, 25, 0, cancelInput);
-
-		desktop.keyfocus = rename_widget;
-		desktop.needsRepaint = 1;
-	}
-}
-
-void gui_ls(char *path) {
-	strcpy(desktop.widgets[current_path_widget].context.text->text,
-	       strlen(path) > 0 ? path : "/");
-
-	int widgetsToRemove[MAX_WIDGET_SIZE];
+void removeAllScrollableWidgets() {
+	int toRemove[MAX_WIDGET_SIZE];
 	int removeCount = 0;
 
-	// Collect widgets to remove
 	for (int p = desktop.widgetlisthead; p != -1;
 	     p = desktop.widgets[p].next) {
-		if (desktop.widgets[p].scrollable == 1 &&
-		    (desktop.widgets[p].type == TEXT ||
-		     desktop.widgets[p].type == SHAPE) &&
-		    p != current_path_widget) {
-			widgetsToRemove[removeCount++] = p;
+		if (p >= 0 && p < MAX_WIDGET_SIZE &&
+		    desktop.widgets[p].scrollable == 1) {
+			toRemove[removeCount++] = p;
+			if (removeCount >= MAX_WIDGET_SIZE)
+				break;
 		}
 	}
 
-	// Remove old items
 	for (int i = 0; i < removeCount; i++) {
-		removeWidget(&desktop, widgetsToRemove[i]);
+		removeWidget(&desktop, toRemove[i]);
 	}
+}
 
-	static char pathBuf[MAX_LONG_STRLEN];
+void loadFiles() {
+	removeAllScrollableWidgets();
+
+	char pathBuf[MAX_LONG_STRLEN];
 	char *p;
 	int fd;
 	struct dirent de;
 	struct stat st;
-	int lineCount = 0;
 
 	char openPath[MAX_LONG_STRLEN];
-	if (strlen(path) > 0) {
-		strcpy(openPath, path);
+	if (strlen(current_path) > 0) {
+		if (strlen(current_path) >= MAX_LONG_STRLEN)
+			return;
+		strcpy(openPath, current_path);
 	} else {
 		strcpy(openPath, ".");
 	}
 
-	if ((fd = open(openPath, 0)) < 0) {
+	if ((fd = open(openPath, 0)) < 0)
 		return;
-	}
-
 	if (fstat(fd, &st) < 0) {
 		close(fd);
 		return;
 	}
 
-	if (st.type == T_DIR) {
-		if (strlen(path) + 1 + DIRSIZ + 1 > sizeof(pathBuf)) {
-			close(fd);
-			return;
+	if (st.type != T_DIR) {
+		close(fd);
+		return;
+	}
+
+	if (strlen(current_path) + 1 + DIRSIZ + 1 > sizeof(pathBuf)) {
+		close(fd);
+		return;
+	}
+
+	strcpy(pathBuf, current_path);
+	p = pathBuf + strlen(pathBuf);
+	if (strlen(current_path) > 0)
+		*p++ = '/';
+
+	int contentY = TOPBAR_HEIGHT + CONTENT_PADDING;
+	int contentX = CONTENT_PADDING;
+
+	total_items = 0;
+
+	while (read(fd, &de, sizeof(de)) == sizeof(de)) {
+		if (de.inum == 0)
+			continue;
+
+		memmove(p, de.name, DIRSIZ);
+		p[DIRSIZ] = 0;
+
+		if (stat(pathBuf, &st) < 0)
+			continue;
+
+		char formatName[MAX_SHORT_STRLEN];
+		char *fname = fmtname(pathBuf);
+		if (!fname)
+			continue;
+
+		int nameLen = strlen(fname);
+		if (nameLen >= MAX_SHORT_STRLEN)
+			nameLen = MAX_SHORT_STRLEN - 1;
+
+		memmove(formatName, fname, nameLen);
+		formatName[nameLen] = '\0';
+
+		int shouldShow = 0;
+		int isDir = 0;
+
+		if (st.type == T_DIR && strcmp(formatName, ".") != 0 &&
+		    strcmp(formatName, "..") != 0) {
+			shouldShow = 1;
+			isDir = 1;
+		} else if (st.type == T_FILE && shouldShowFile(formatName)) {
+			shouldShow = 1;
+			isDir = 0;
 		}
 
-		strcpy(pathBuf, path);
-		p = pathBuf + strlen(pathBuf);
-		if (strlen(path) > 0)
-			*p++ = '/';
+		if (!shouldShow)
+			continue;
 
-		while (read(fd, &de, sizeof(de)) == sizeof(de)) {
-			if (de.inum == 0)
-				continue;
+		int y = contentY + total_items * (ITEM_HEIGHT + ITEM_PADDING);
 
-			memmove(p, de.name, DIRSIZ);
-			p[DIRSIZ] = 0;
-
-			if (stat(pathBuf, &st) < 0)
-				continue;
-
-			char formatName[MAX_SHORT_STRLEN];
-			strcpy(formatName, fmtname(pathBuf));
-
-			if (st.type == T_FILE) {
-				if (shouldShowFile(formatName)) {
-					char displayName[MAX_SHORT_STRLEN + 5];
-					strcpy(displayName, "F ");
-					strcat(displayName, formatName);
-					addTextWidget(&desktop, textColor,
-						      displayName, itemStartX,
-						      itemStartY +
-							      lineCount * 26,
-						      340, 22, 1, fileHandler);
-					lineCount++;
-				}
-			} else if (st.type == T_DIR &&
-				   strcmp(formatName, ".") != 0 &&
-				   strcmp(formatName, "..") != 0) {
-				char displayName[MAX_SHORT_STRLEN + 5];
-				strcpy(displayName, "[D] ");
-				strcat(displayName, formatName);
-				addTextWidget(&desktop, dirColor, displayName,
-					      itemStartX,
-					      itemStartY + lineCount * 26, 340,
-					      22, 1, cdHandler);
-				lineCount++;
+		char displayText[MAX_SHORT_STRLEN + 10];
+		if (isDir) {
+			strcpy(displayText, "[DIR]  ");
+			if (strlen(displayText) + strlen(formatName) <
+			    MAX_SHORT_STRLEN + 10) {
+				strcat(displayText, formatName);
+			}
+		} else {
+			strcpy(displayText, "[FILE] ");
+			if (strlen(displayText) + strlen(formatName) <
+			    MAX_SHORT_STRLEN + 10) {
+				strcat(displayText, formatName);
 			}
 		}
+
+		struct RGBA itemColor = isDir ? color_folder : color_file;
+
+		int wid =
+			addTextWidget(&desktop, itemColor, displayText,
+				      contentX, y, desktop.width - contentX * 2,
+				      ITEM_HEIGHT, 1, handleFileClick);
+
+		if (total_items < MAX_WIDGET_SIZE) {
+			nameLen = strlen(formatName);
+			if (nameLen >= MAX_SHORT_STRLEN)
+				nameLen = MAX_SHORT_STRLEN - 1;
+
+			memmove(items[total_items].name, formatName, nameLen);
+			items[total_items].name[nameLen] = '\0';
+
+			items[total_items].is_dir = isDir;
+			items[total_items].widget_id = wid;
+			items[total_items].y_pos = y;
+			total_items++;
+		}
+
+		if (total_items >= MAX_WIDGET_SIZE - 10)
+			break;
 	}
 
 	close(fd);
-	total_items = lineCount;
+
+	char pathText[MAX_LONG_STRLEN];
+	if (strlen(current_path) > 0) {
+		int len = strlen(current_path);
+		if (len >= MAX_LONG_STRLEN)
+			len = MAX_LONG_STRLEN - 1;
+		memmove(pathText, current_path, len);
+		pathText[len] = '\0';
+	} else {
+		strcpy(pathText, "/");
+	}
+
+	if (path_display_widget >= 0 && path_display_widget < MAX_WIDGET_SIZE) {
+		strcpy(desktop.widgets[path_display_widget].context.text->text,
+		       pathText);
+	}
+
+	selected_index = -1;
+	desktop.needsRepaint = 1;
 }
 
 int main(int argc, char *argv[]) {
-	desktop.width = 620;
-	desktop.height = 450;
+	desktop.width = 680;
+	desktop.height = 480;
 	desktop.hasTitleBar = 1;
-	createWindow(&desktop, "Files");
+	createWindow(&desktop, "File Explorer");
 
-	// Modern color scheme
-	bgColor.R = 250;
-	bgColor.G = 250;
-	bgColor.B = 250;
-	bgColor.A = 255;
+	initColors();
 
-	textColor.R = 30;
-	textColor.G = 30;
-	textColor.B = 30;
-	textColor.A = 255;
-
-	dirColor.R = 52;
-	dirColor.G = 101;
-	dirColor.B = 164;
-	dirColor.A = 255;
-
-	buttonColor.R = 53;
-	buttonColor.G = 132;
-	buttonColor.B = 228;
-	buttonColor.A = 255;
-
-	whiteColor.R = 255;
-	whiteColor.G = 255;
-	whiteColor.B = 255;
-	whiteColor.A = 255;
-
-	selectedColor.R = 66;
-	selectedColor.G = 135;
-	selectedColor.B = 245;
-	selectedColor.A = 80;
-
-	sidebarColor.R = 242;
-	sidebarColor.G = 242;
-	sidebarColor.B = 242;
-	sidebarColor.A = 255;
-
-	toolbarColor.R = 252;
-	toolbarColor.G = 252;
-	toolbarColor.B = 252;
-	toolbarColor.A = 255;
-
-	contentBgColor.R = 255;
-	contentBgColor.G = 255;
-	contentBgColor.B = 255;
-	contentBgColor.A = 255;
-
-	borderColor.R = 220;
-	borderColor.G = 220;
-	borderColor.B = 220;
-	borderColor.A = 255;
-
-	inputBgColor.R = 245;
-	inputBgColor.G = 247;
-	inputBgColor.B = 250;
-	inputBgColor.A = 255;
-
-	// Background
-	addColorFillWidget(&desktop, bgColor, 0, 0, desktop.width,
+	addColorFillWidget(&desktop, color_bg, 0, 0, desktop.width,
 			   desktop.height, 0, emptyHandler);
 
-	// Sidebar
-	sidebar_bg_widget =
-		addColorFillWidget(&desktop, sidebarColor, 0, 0, sidebarWidth,
-				   desktop.height, 0, emptyHandler);
+	topbar_widget =
+		addColorFillWidget(&desktop, color_topbar, 0, 0, desktop.width,
+				   TOPBAR_HEIGHT, 0, emptyHandler);
 
-	// Sidebar items
-	addTextWidget(&desktop, dirColor, "< Home", 10, 10, 120, 22, 0,
-		      homeHandler);
+	addButtonWidget(&desktop, color_white, color_button, "<", 8, 8, 32, 24,
+			0, handleBack);
+	addButtonWidget(&desktop, color_white, color_button, "Home", 48, 8, 50,
+			24, 0, handleHome);
+	addButtonWidget(&desktop, color_white, color_button, "+Dir", 106, 8, 48,
+			24, 0, handleNewFolder);
+	addButtonWidget(&desktop, color_white, color_button, "+File", 162, 8,
+			48, 24, 0, handleNewFile);
+	addButtonWidget(&desktop, color_white, color_button, "Rename", 218, 8,
+			60, 24, 0, handleRename);
+	addButtonWidget(&desktop, color_white, color_button, "Delete", 286, 8,
+			58, 24, 0, handleDelete);
 
-	// Toolbar
-	toolbar_bg_widget = addColorFillWidget(
-		&desktop, toolbarColor, sidebarWidth, 0,
-		desktop.width - sidebarWidth, toolbarHeight, 0, emptyHandler);
+	path_display_widget =
+		addTextWidget(&desktop, color_text_light, "/", 354, 12,
+			      desktop.width - 364, 18, 0, emptyHandler);
 
-	// Toolbar buttons - single click only
-	addButtonWidget(&desktop, textColor, buttonColor, "<", sidebarWidth + 5,
-			10, 30, 25, 0, backHandler);
-	addButtonWidget(&desktop, textColor, buttonColor, "+Dir",
-			sidebarWidth + 40, 10, 45, 25, 0, newFolderHandler);
-	addButtonWidget(&desktop, textColor, buttonColor, "+File",
-			sidebarWidth + 90, 10, 45, 25, 0, newFileHandler);
-	addButtonWidget(&desktop, textColor, buttonColor, "Ren",
-			sidebarWidth + 140, 10, 40, 25, 0, renameHandler);
+	statusbar_widget = addColorFillWidget(
+		&desktop, color_statusbar, 0, desktop.height - STATUSBAR_HEIGHT,
+		desktop.width, STATUSBAR_HEIGHT, 0, emptyHandler);
 
-	// Content area background
-	content_bg_widget = addColorFillWidget(
-		&desktop, contentBgColor, sidebarWidth, toolbarHeight,
-		desktop.width - sidebarWidth, inputPanelY - toolbarHeight, 0,
-		emptyHandler);
-
-	// Path display
 	memset(current_path, 0, MAX_LONG_STRLEN);
-	current_path_widget = addTextWidget(
-		&desktop, dirColor, "/", itemStartX, itemStartY - 25,
-		desktop.width - itemStartX - 10, 18, 0, emptyHandler);
+	memset(selected_name, 0, MAX_SHORT_STRLEN);
 
-	gui_ls(current_path);
+	loadFiles();
 
-	addColorFillWidget(&desktop, bgColor, 0, 0, 0, 0, 0,
-			   explorerKeyHandler);
+	addColorFillWidget(&desktop, color_bg, 0, 0, 0, 0, 0, handleKeyboard);
 	desktop.keyfocus = desktop.widgetlisttail;
 
 	while (1) {
 		updateWindow(&desktop);
 
-		// Draw selection highlight - only once per frame
-		if (selected_widget != -1 && selected_w > 0 &&
-		    input_mode == 0) {
-			int draw_y = selected_y - desktop.scrollOffsetY;
+		if (need_refresh) {
+			need_refresh = 0;
+			loadFiles();
+		}
 
-			// Only draw if visible in content area
-			if (draw_y + selected_h >= itemStartY &&
-			    draw_y < inputPanelY) {
-				// Draw filled selection background
-				drawFillRect(&desktop, selectedColor,
-					     selected_x, draw_y, selected_w,
-					     selected_h);
+		if (!dialog_active && selected_index >= 0 &&
+		    selected_index < total_items) {
+			int y = items[selected_index].y_pos -
+				desktop.scrollOffsetY;
 
-				// Draw border
-				RGB borderHighlight;
-				borderHighlight.R = 66;
-				borderHighlight.G = 135;
-				borderHighlight.B = 245;
-				drawRect(&desktop, borderHighlight, selected_x,
-					 draw_y, selected_w, selected_h);
+			int contentTop = TOPBAR_HEIGHT;
+			int contentBottom = desktop.height - STATUSBAR_HEIGHT;
+
+			if (y + ITEM_HEIGHT > contentTop && y < contentBottom) {
+				drawFillRect(&desktop, color_selected,
+					     CONTENT_PADDING, y,
+					     desktop.width -
+						     CONTENT_PADDING * 2,
+					     ITEM_HEIGHT);
+
+				RGB borderAccent;
+				borderAccent.R = color_accent.R;
+				borderAccent.G = color_accent.G;
+				borderAccent.B = color_accent.B;
+				drawRect(&desktop, borderAccent,
+					 CONTENT_PADDING, y,
+					 desktop.width - CONTENT_PADDING * 2,
+					 ITEM_HEIGHT);
 			}
 		}
 	}
+
+	return 0;
 }

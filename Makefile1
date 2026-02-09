@@ -136,29 +136,11 @@ $(B)/editor.o: $(A)/editor/editor.c
 $(B)/_editor: $(B)/editor.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 
-# --- Explorer (Modular)
-EXPLORER_OBJS = explorer_main.o explorer_utils.o explorer_dialogs.o \
-                explorer_fileops.o explorer_handlers.o explorer_ui.o
-
-$(B)/explorer_main.o: $(A)/explorer/explorer_main.c
+# --- Explorer
+$(B)/explorer.o: $(A)/explorer/explorer.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(B)/explorer_utils.o: $(A)/explorer/explorer_utils.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(B)/explorer_dialogs.o: $(A)/explorer/explorer_dialogs.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(B)/explorer_fileops.o: $(A)/explorer/explorer_fileops.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(B)/explorer_handlers.o: $(A)/explorer/explorer_handlers.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(B)/explorer_ui.o: $(A)/explorer/explorer_ui.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(B)/_explorer: $(addprefix $(B)/, $(EXPLORER_OBJS)) $(ULIB)
+$(B)/_explorer: $(B)/explorer.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 
 # --- Calculator
@@ -185,6 +167,7 @@ UPROGS = \
 	$(B)/_sh \
 	$(B)/_mkdir \
 	$(B)/_echo \
+	$(B)/_proc_demo \
 	$(B)/_desktop \
 	$(B)/_startWindow \
 	$(B)/_terminal \
@@ -193,8 +176,8 @@ UPROGS = \
 	$(B)/_floppybird \
 	$(B)/_calculator \
 	
-$(IMG)/fs.img: $(B)/mkfs README.md LICENSE.txt readme.txt $(UPROGS)
-	$(B)/mkfs $(IMG)/fs.img README.md LICENSE.txt readme.txt $(UPROGS)
+$(IMG)/fs.img: $(B)/mkfs README.md LICENSE readme.txt $(UPROGS)
+	$(B)/mkfs $(IMG)/fs.img README.md LICENSE readme.txt $(UPROGS)
 
 $(B)/mkfs: $(K)/mkfs.c
 	gcc -Werror -Wall -o $(B)/mkfs $(K)/mkfs.c

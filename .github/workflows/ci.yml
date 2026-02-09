@@ -15,13 +15,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Clang-Format
-        run: sudo apt-get install -y clang-format
-
-      - name: Run Clang-Format Style Check
-        run: |
-          find kernel user -name "*.c" | grep -v "icons_data.c" | xargs clang-format --dry-run --Werror || echo "Format check failed, but continuing..."
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -42,7 +35,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-multilib build-essential binutils
 
-      # LANGKAH KRUSIAL: Generate file yang di-ignore oleh git
+      # Menghasilkan file yang dibutuhkan untuk build
       - name: Generate Font and Icon Data
         run: |
           python3 font.py
