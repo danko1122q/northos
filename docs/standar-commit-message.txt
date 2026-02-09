@@ -1,9 +1,0 @@
-[NorthOS Standard Commit Message]
-
-Header: NorthOS vX.X.X: Brief Summary
-
-Bullet Points: Technical details of what was implemented/changed.
-
-Files added: List of new files (or write "None").
-
-Files modified: List of edited files.
