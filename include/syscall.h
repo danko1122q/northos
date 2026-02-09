@@ -1,3 +1,6 @@
+#ifndef SYSCALL_H
+#define SYSCALL_H
+
 // System call numbers
 #define SYS_fork 1
 #define SYS_exit 2
@@ -32,3 +35,7 @@
 #define SYS_GUI_getPopupMessage 31
 #define SYS_halt 32
 #define SYS_reboot 33
+#define SYS_get_rtc_time 34
+#define SYS_get_rtc_date 35
+
+#endif

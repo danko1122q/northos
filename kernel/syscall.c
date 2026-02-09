@@ -7,7 +7,7 @@
 #include "types.h"
 #include "x86.h"
 
-// Fetch functions (fetchint, fetchstr, argint, argptr, argstr) tetap sama...
+// Fetch an integer from the user process stack at addr.
 int fetchint(uint addr, int *ip) {
 	struct proc *curproc = myproc();
 	if (addr >= curproc->sz || addr + 4 > curproc->sz)
@@ -16,6 +16,7 @@ int fetchint(uint addr, int *ip) {
 	return 0;
 }
 
+// Fetch a null-terminated string from the user process at addr.
 int fetchstr(uint addr, char **pp) {
 	char *s, *ep;
 	struct proc *curproc = myproc();
@@ -30,10 +31,14 @@ int fetchstr(uint addr, char **pp) {
 	return -1;
 }
 
+// Helper to get the n-th system call argument (as an integer).
 int argint(int n, int *ip) {
 	return fetchint((myproc()->tf->esp) + 4 + 4 * n, ip);
 }
 
+// Helper to get the n-th system call argument as a pointer.
+// Check if the pointer and the data it points to are within the process's
+// memory.
 int argptr(int n, char **pp, int size) {
 	int i;
 	struct proc *curproc = myproc();
@@ -45,6 +50,7 @@ int argptr(int n, char **pp, int size) {
 	return 0;
 }
 
+// Helper to get the n-th system call argument as a string pointer.
 int argstr(int n, char **pp) {
 	int addr;
 	if (argint(n, &addr) < 0)
@@ -86,6 +92,8 @@ extern int sys_GUI_createPopupWindow(void);
 extern int sys_GUI_closePopupWindow(void);
 extern int sys_halt(void);
 extern int sys_reboot(void);
+extern int sys_get_rtc_time(void);
+extern int sys_get_rtc_date(void);
 
 static int (*syscalls[])(void) = {
 	[SYS_fork] sys_fork,
@@ -121,6 +129,8 @@ static int (*syscalls[])(void) = {
 	[SYS_GUI_closePopupWindow] sys_GUI_closePopupWindow,
 	[SYS_halt] sys_halt,
 	[SYS_reboot] sys_reboot,
+	[SYS_get_rtc_time] sys_get_rtc_time,
+	[SYS_get_rtc_date] sys_get_rtc_date,
 };
 
 void syscall(void) {

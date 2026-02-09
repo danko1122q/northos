@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "types.h"
 #include "x86.h"
+#include "rtc.h"
 
 int sys_fork(void) { return fork(); }
 
@@ -88,5 +89,32 @@ int sys_reboot(void) {
 		good = inb(0x64);
 	outb(0x64, 0xFE);
 
+	return 0;
+}
+
+// Implementasi System Call RTC yang sudah diperbaiki cast-nya
+int sys_get_rtc_time(void) {
+	int *h, *m, *s;
+
+	// Ubah cast menjadi (char **) agar sesuai dengan defs.h
+	if (argptr(0, (char **)&h, sizeof(int)) < 0 ||
+	    argptr(1, (char **)&m, sizeof(int)) < 0 ||
+	    argptr(2, (char **)&s, sizeof(int)) < 0)
+		return -1;
+
+	rtc_read_time(h, m, s);
+	return 0;
+}
+
+int sys_get_rtc_date(void) {
+	int *d, *mo, *y;
+
+	// Ubah cast menjadi (char **) agar sesuai dengan defs.h
+	if (argptr(0, (char **)&d, sizeof(int)) < 0 ||
+	    argptr(1, (char **)&mo, sizeof(int)) < 0 ||
+	    argptr(2, (char **)&y, sizeof(int)) < 0)
+		return -1;
+
+	rtc_read_date(d, mo, y);
 	return 0;
 }

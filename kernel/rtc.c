@@ -3,6 +3,7 @@
 #include "types.h"
 #include "x86.h"
 #include "defs.h"
+#include "rtc.h"
 
 #define RTC_PORT_ADDR 0x70
 #define RTC_PORT_DATA 0x71

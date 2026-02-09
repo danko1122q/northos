@@ -48,6 +48,10 @@ int GUI_closePopupWindow(struct window *);
 int halt(void);
 int reboot(void);
 
+// Real-Time Clock System Calls (Update Northos)
+int get_rtc_time(int *hours, int *minutes, int *seconds);
+int get_rtc_date(int *day, int *month, int *year);
+
 // ulib.c
 int stat(const char *, struct stat *);
 char *strcpy(char *, const char *);
