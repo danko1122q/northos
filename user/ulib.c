@@ -95,3 +95,52 @@ char *strcat(char *dest, const char *src) {
 		;
 	return ret;
 }
+
+// Check if the RDRAND instruction is available via CPUID leaf 1, ECX bit 30.
+int RDRAND_available(void) {
+	uint ecx;
+	asm volatile(
+		"movl $1, %%eax\n\t"
+		"cpuid\n\t"
+		: "=c"(ecx)
+		:
+		: "eax", "ebx", "edx"
+	);
+	return (ecx >> 30) & 1;
+}
+
+// Multiply-with-carry PRNG using two 32-bit words and multiplier 4294967118.
+// Seeded with RDRAND if available, otherwise with fixed constants.
+uint rand(void) {
+	static uint w = 0;
+	static uint z = 0;
+	static int seeded = 0;
+
+	if (!seeded) {
+		if (RDRAND_available()) {
+			uint r1 = 0, r2 = 0;
+			// Loop until the carry flag signals a valid random value.
+			asm volatile(
+				"1: rdrand %0\n\t"
+				"jnc 1b\n\t"
+				: "=r"(r1)
+			);
+			asm volatile(
+				"1: rdrand %0\n\t"
+				"jnc 1b\n\t"
+				: "=r"(r2)
+			);
+			w = r1 ? r1 : 362436069;
+			z = r2 ? r2 : 521288629;
+		} else {
+			w = 362436069;
+			z = 521288629;
+		}
+		seeded = 1;
+	}
+
+	// Multiply-with-carry iteration with multiplier 4294967118.
+	z = 4294967118U * (z & 0xFFFF) + (z >> 16);
+	w = 4294967118U * (w & 0xFFFF) + (w >> 16);
+	return (z << 16) + (w & 0xFFFF);
+}
